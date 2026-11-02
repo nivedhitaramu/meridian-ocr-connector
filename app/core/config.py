@@ -61,6 +61,11 @@ INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 # Empty is fine for the stateless API, which doesn't use the database yet.
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
+# --- Sign-in ---------------------------------------------------------------
+# Your Clerk Frontend API URL, for example https://your-app.clerk.accounts.dev. Empty refuses every token.
+CLERK_ISSUER = os.getenv("CLERK_ISSUER", "").rstrip("/")
+CLERK_AUTHORIZED_PARTIES = [o.strip() for o in os.getenv("CLERK_AUTHORIZED_PARTIES", "http://localhost:3000").split(",") if o.strip()]
+
 # --- Telemetry -------------------------------------------------------------
 TELEMETRY_LOG = Path(os.getenv("TELEMETRY_LOG", "./logs/telemetry.jsonl")).resolve()
 OTEL_CONSOLE_EXPORT = os.getenv("OTEL_CONSOLE_EXPORT", "1") == "1"

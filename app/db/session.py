@@ -18,3 +18,9 @@ def engine() -> Engine:
 
 def new_session() -> Session:
     return sessionmaker(engine())()
+
+
+def get_db():
+    """FastAPI dependency: one session per request."""
+    with new_session() as session:
+        yield session

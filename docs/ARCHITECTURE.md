@@ -12,7 +12,7 @@ Each diagram is labelled:
 | Layer | Built | Target |
 |---|---|---|
 | 1. Experience | Streamlit clerk page with trace panel | Next.js web app and admin console |
-| 2. Edge and security | CORS limit, file checks, 10 MB cap | HTTPS, WAF, authentication, authorization, rate limiting |
+| 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
 | 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml` | Tenants, shipments, jobs, review, audit |
 | 4. Data and messaging | Temporary local files, deleted after each request; PostgreSQL schema and migrations, not yet used by the app | App use of PostgreSQL, Redis, job queue, private object storage |
 | 5. Document intelligence | All stages, running inside the API process | The same stages in separate workers |
@@ -365,6 +365,10 @@ Controls across the system:
 | Client errors | Generic message; the log records only an error class |
 | Secrets | Environment variables only; `.env` is never committed |
 | Business decision | Deterministic code, never the model |
+
+## Decisions
+
+**Sign-in uses Clerk (2026-11-02).** It's the fastest route to sign-up, sign-in and password reset, and works well with the planned Next.js app. The API only verifies signed tokens with Clerk's public keys, so it holds no passwords. The trade-offs are an outside service holding user emails, and a pricing dependency to review before launch. AWS Cognito was the alternative: it keeps users in our AWS account, but it's slower to set up and harder to test locally.
 
 ## Corrections made to the original diagrams
 
