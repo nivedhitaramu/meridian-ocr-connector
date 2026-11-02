@@ -48,9 +48,14 @@ PII_SCORE_THRESHOLD = float(os.getenv("PII_SCORE_THRESHOLD", "0.35"))
 MAX_UPLOAD_BYTES = _int("MAX_UPLOAD_MB", 10) * 1024 * 1024
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./.uploads")).resolve()
 MAX_EML_ATTACHMENTS = _int("MAX_EML_ATTACHMENTS", 10)
+MAX_PDF_PAGES = _int("MAX_PDF_PAGES", 5)        # longer PDFs are refused, never silently cut short
+VISION_MAX_PAGES = _int("VISION_MAX_PAGES", 3)  # longer fallback documents go to manual review
 
 # --- Web -------------------------------------------------------------------
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:8501").split(",") if o.strip()]
+RATE_LIMIT_PER_MINUTE = _int("RATE_LIMIT_PER_MINUTE", 30)  # per client, on the extract endpoints. 0 turns it off.
+# When set, /v1/trace/last and /v1/metrics need this value in the X-Internal-Token header. Set it when deployed.
+INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 
 # --- Telemetry -------------------------------------------------------------
 TELEMETRY_LOG = Path(os.getenv("TELEMETRY_LOG", "./logs/telemetry.jsonl")).resolve()

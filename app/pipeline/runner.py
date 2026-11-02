@@ -93,10 +93,11 @@ def run(files: list[bytes]) -> ExtractResponse:
             return response
     except PipelineError as err:
         _record(tr, "error", error_class=err.error_class)
+        err.request_id = request_id
         raise
     except Exception as exc:
         _record(tr, "error", error_class="internal_error")
-        raise PipelineError("internal_error") from exc
+        raise PipelineError("internal_error", request_id) from exc
     finally:
         vault.clear()  # placeholder map dies with the request
 

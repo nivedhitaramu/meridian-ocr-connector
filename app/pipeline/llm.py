@@ -82,7 +82,9 @@ def extract_from_images(redacted_pages: list[Image.Image]) -> LLMResult:
     if not config.VISION_MODEL:
         raise PipelineError("manual_review_required")
     content: list[dict] = [{"type": "text", "text": "Read this redacted shipping document."}]
-    for page in redacted_pages[:3]:
+    if len(redacted_pages) > config.VISION_MAX_PAGES:
+        raise PipelineError("manual_review_too_many_pages")
+    for page in redacted_pages:
         buf = io.BytesIO()
         page.convert("RGB").save(buf, format="JPEG", quality=85)
         b64 = base64.b64encode(buf.getvalue()).decode()
