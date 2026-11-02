@@ -105,22 +105,18 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Last updated:** 2026-11-02.
 
-**Merged:** PR #1 (architecture alignment) is on `main`. Issues #2-#45 hold the full plan.
+**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10) and CI. Issues #2-#45 hold the full plan.
 
-**In review:** the privacy fixes for #4 and `tests/test_privacy.py`, on branch `privacy-fixes`.
+**In progress:** #13 local Docker stack on branch `local-stack`. Docker isn't installed on this machine, so CI verifies it. The worker waits for #19.
 
-**In review:** branch `hardening`, built on `privacy-fixes`: #7 (rate limit, internal token), #8 (page limits, request IDs) and #10 (pinned requirements, CI).
+**Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 
-**Verified by running with those local fixes, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
-
-**Not verified:** a real LLM call, real accuracy, the Streamlit page in a browser, hosted vision and any deployed environment. Mock's 100% evaluation only proves the plumbing, because mock is tuned to the samples.
+**Not verified:** a real LLM call, real accuracy, hosted vision and any deployed environment. Mock's 100% evaluation only proves the plumbing, because mock is tuned to the samples.
 
 **Present in the code:** upload checks, OCR, masking, extraction, rules, `/v1/extract`, `/v1/extract-eml`, telemetry, trace panel, Streamlit page, 40 samples, 20-document test sheet, 12 rule cases and an evaluation script.
 
 
 **Not done**
-- [ ] Merge the privacy fixes (#4)
-- [ ] Click through the four demo steps in the Streamlit page
 - [ ] Measure accuracy with the real model (README says "Not measured yet")
 - [ ] Confirm the LLM provider, its model ID and that its terms exclude training on prompts
 - [ ] Deploy the live demo; the `Dockerfile` starts only the API, not Streamlit
@@ -136,6 +132,6 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 4. **Rate limit is per process and per client address:** behind Streamlit, all users share one address, so the limit protects the LLM quota rather than separating users.
 5. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
 
-**Next step:** merge the privacy fixes (#4), then measure real accuracy with an LLM key (#5).
+**Next step:** the blockers are real accuracy with an LLM key (#5), the database (#14) and the live demo (#6). Most remaining ALN-web issues depend on #14, #20 or #21.
 
 **Open questions for the team:** submission deadline, final LLM provider, live demo hosting, who owns what, and whether the Target layers should start before submission.
