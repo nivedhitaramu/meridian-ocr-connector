@@ -11,7 +11,7 @@ Each diagram is labelled:
 
 | Layer | Built | Target |
 |---|---|---|
-| 1. Experience | Streamlit clerk page with trace panel | Next.js web app and admin console |
+| 1. Experience | Streamlit clerk page with trace panel; Next.js foundation and workspace page | The rest of the Next.js product and admin console |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
 | 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members and roles | Shipments, jobs, review, audit |
 | 4. Data and messaging | Temporary local files, deleted after each request; PostgreSQL schema and migrations, not yet used by the app | App use of PostgreSQL, Redis, job queue, private object storage |
@@ -28,6 +28,7 @@ app/
   pipeline/          Document intelligence: OCR, PII, vision, LLM, runner
   domains/meridian/  Meridian only: schemas, prompt, business rules
 ui/                  Experience: Streamlit page
+web/                 Experience: Next.js product UI
 ```
 
 A new document workflow should add a folder under `domains/`. `pipeline/` still imports Meridian's schemas and rules directly, so that boundary needs an interface before a second domain is added.
