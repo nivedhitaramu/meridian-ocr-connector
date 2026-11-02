@@ -1,11 +1,13 @@
 # Local stack: docker compose up --build
-# The API doesn't use PostgreSQL or Redis yet; #14 and #19 connect them, and #19 adds the worker.
+# Create the tables with: docker compose exec api alembic upgrade head
+# The app doesn't read the database or Redis yet. #19 connects them and adds the worker.
 services:
   api:
     build: .
     env_file: .env
     environment:
       ALLOWED_ORIGINS: http://localhost:8501
+      DATABASE_URL: postgresql+psycopg://meridian:${POSTGRES_PASSWORD}@postgres:5432/meridian
     ports:
       - "8000:8000"
     depends_on:

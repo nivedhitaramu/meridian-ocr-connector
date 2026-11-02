@@ -90,7 +90,7 @@ streamlit run ui/streamlit_app.py
 
 The API docs are at `http://localhost:8000/docs` and the page is at `http://localhost:8501`.
 
-**With Docker instead:** set `POSTGRES_PASSWORD` in `.env`, then run the command below. It starts the API, the page, PostgreSQL and Redis. The app doesn't use PostgreSQL or Redis yet.
+**With Docker instead:** set `POSTGRES_PASSWORD` in `.env`, then run the command below. It starts the API, the page, PostgreSQL and Redis. The app doesn't read PostgreSQL or Redis yet, but you can create the tables with `docker compose exec api alembic upgrade head`.
 
 ```bash
 docker compose up --build

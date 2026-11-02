@@ -14,7 +14,7 @@ Each diagram is labelled:
 | 1. Experience | Streamlit clerk page with trace panel | Next.js web app and admin console |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap | HTTPS, WAF, authentication, authorization, rate limiting |
 | 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml` | Tenants, shipments, jobs, review, audit |
-| 4. Data and messaging | Temporary local files, deleted after each request | PostgreSQL, Redis, job queue, private object storage |
+| 4. Data and messaging | Temporary local files, deleted after each request; PostgreSQL schema and migrations, not yet used by the app | App use of PostgreSQL, Redis, job queue, private object storage |
 | 5. Document intelligence | All stages, running inside the API process | The same stages in separate workers |
 | 6. Observability | OpenTelemetry spans, safe JSON logs, in-memory counters | Collector, Grafana or CloudWatch dashboards |
 
@@ -158,7 +158,7 @@ Every path reaches the cleanup step, including failures. Normalization and valid
 
 ## 3. Production database architecture
 
-**Status: Target.** The app has no database today.
+**Status: Partly built.** The tables and migrations exist in `app/db/models.py` and `migrations/`, but the app doesn't read or write them yet.
 
 ```mermaid
 erDiagram
@@ -251,7 +251,7 @@ erDiagram
 ```
 
 Rules for this schema:
-- Every tenant table carries `organization_id`, backed by Postgres row-level security.
+- Every tenant table carries `organization_id`, and foreign keys between tenant tables include it. Postgres row-level security comes with #16.
 - No table stores original filenames, OCR text, prompts or the placeholder map.
 - `storage_key` is cleared once the file is deleted.
 

@@ -1,0 +1,204 @@
+"""Database schema, as designed in docs/ARCHITECTURE.md.
+
+Two rules keep this schema safe:
+- Every tenant table has organization_id, and foreign keys between tenant tables include it,
+  so a row can never point at another organization's data.
+- No column may hold an original filename, OCR text, a prompt, a completion or the placeholder map.
+  tests/test_db.py enforces this.
+"""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+
+from sqlalchemy import (
+    JSON, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, MetaData, String,
+    UniqueConstraint, Uuid, func,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+JsonValue = JSON().with_variant(JSONB(), "postgresql")
+
+MEMBER_ROLES = ("admin", "supervisor", "clerk")
+JOB_STATUSES = ("queued", "running", "succeeded", "failed", "manual_review")
+CHECK_STATUSES = ("Match", "Mismatch", "Incomplete", "Not applicable")
+
+
+def _one_of(column: str, values: tuple[str, ...]) -> str:
+    return f"{column} IN ({', '.join(repr(v) for v in values)})"
+
+
+class Base(DeclarativeBase):
+    metadata = MetaData(naming_convention={
+        "ix": "ix_%(column_0_label)s",
+        "uq": "uq_%(table_name)s_%(column_0_name)s",
+        "ck": "ck_%(table_name)s_%(constraint_name)s",
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+        "pk": "pk_%(table_name)s",
+    })
+
+
+def _id() -> Mapped[uuid.UUID]:
+    return mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+
+
+def _created_at() -> Mapped[datetime]:
+    return mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+def _tenant() -> Mapped[uuid.UUID]:
+    return mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id: Mapped[uuid.UUID] = _id()
+    name: Mapped[str] = mapped_column(String(200))
+    plan: Mapped[str] = mapped_column(String(50), default="trial")
+    created_at: Mapped[datetime] = _created_at()
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = _id()
+    email: Mapped[str] = mapped_column(String(320), unique=True)
+    created_at: Mapped[datetime] = _created_at()
+
+
+class OrganizationMember(Base):
+    __tablename__ = "organization_members"
+    __table_args__ = (CheckConstraint(_one_of("role", MEMBER_ROLES), name="role_allowed"),)
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20), default="clerk")
+
+
+class Shipment(Base):
+    __tablename__ = "shipments"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_shipments_tenant_id"),
+        UniqueConstraint("organization_id", "reference", name="uq_shipments_tenant_reference"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    reference: Mapped[str] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(String(30), default="open")
+    created_at: Mapped[datetime] = _created_at()
+
+
+class Document(Base):
+    __tablename__ = "documents"
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "shipment_id"], ["shipments.organization_id", "shipments.id"],
+                             name="fk_documents_tenant_shipment", ondelete="CASCADE"),
+        UniqueConstraint("organization_id", "id", name="uq_documents_tenant_id"),
+        Index("ix_documents_shipment", "shipment_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    shipment_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    document_type: Mapped[str | None] = mapped_column(String(50))
+    storage_key: Mapped[str | None] = mapped_column(String(200))  # random name; cleared once the file is deleted
+    processing_status: Mapped[str] = mapped_column(String(30), default="pending")
+    page_count: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _created_at()
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ProcessingJob(Base):
+    __tablename__ = "processing_jobs"
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "shipment_id"], ["shipments.organization_id", "shipments.id"],
+                             name="fk_processing_jobs_tenant_shipment", ondelete="CASCADE"),
+        UniqueConstraint("organization_id", "id", name="uq_processing_jobs_tenant_id"),
+        UniqueConstraint("organization_id", "idempotency_key", name="uq_processing_jobs_tenant_idempotency_key"),
+        CheckConstraint(_one_of("job_status", JOB_STATUSES), name="job_status_allowed"),
+        Index("ix_processing_jobs_shipment", "shipment_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    shipment_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    job_status: Mapped[str] = mapped_column(String(20), default="queued")
+    idempotency_key: Mapped[str | None] = mapped_column(String(100))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    error_class: Mapped[str | None] = mapped_column(String(50))
+    timings_ms: Mapped[dict | None] = mapped_column(JsonValue)
+    entity_counts: Mapped[dict | None] = mapped_column(JsonValue)
+    created_at: Mapped[datetime] = _created_at()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ExtractionResult(Base):
+    __tablename__ = "extraction_results"
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "document_id"], ["documents.organization_id", "documents.id"],
+                             name="fk_extraction_results_tenant_document", ondelete="CASCADE"),
+        Index("ix_extraction_results_document", "document_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    document_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    fields: Mapped[dict] = mapped_column(JsonValue)
+    quantity_unit: Mapped[str | None] = mapped_column(String(30))
+    ocr_mean_confidence: Mapped[float | None]
+    prompt_version: Mapped[str | None] = mapped_column(String(50))
+    created_at: Mapped[datetime] = _created_at()
+
+
+class VerificationResult(Base):
+    __tablename__ = "verification_results"
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "job_id"], ["processing_jobs.organization_id", "processing_jobs.id"],
+                             name="fk_verification_results_tenant_job", ondelete="CASCADE"),
+        UniqueConstraint("organization_id", "id", name="uq_verification_results_tenant_id"),
+        UniqueConstraint("job_id", name="uq_verification_results_job"),
+        CheckConstraint(_one_of("status", CHECK_STATUSES), name="status_allowed"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    job_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    status: Mapped[str] = mapped_column(String(20))
+    reason: Mapped[str] = mapped_column(String(300))  # the rule engine's template, never model text
+    created_at: Mapped[datetime] = _created_at()
+
+
+class ReviewAction(Base):
+    __tablename__ = "review_actions"
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "verification_result_id"],
+                             ["verification_results.organization_id", "verification_results.id"],
+                             name="fk_review_actions_tenant_result", ondelete="CASCADE"),
+        ForeignKeyConstraint(["organization_id", "reviewer_id"],
+                             ["organization_members.organization_id", "organization_members.user_id"],
+                             name="fk_review_actions_tenant_reviewer"),
+        Index("ix_review_actions_result", "verification_result_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    verification_result_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    reviewer_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    action: Mapped[str] = mapped_column(String(50))
+    created_at: Mapped[datetime] = _created_at()
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+    __table_args__ = (Index("ix_audit_events_tenant_created", "organization_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    action: Mapped[str] = mapped_column(String(50))
+    target: Mapped[str | None] = mapped_column(String(100))  # a type and ID, never field values
+    request_id: Mapped[str | None] = mapped_column(String(36))
+    created_at: Mapped[datetime] = _created_at()
