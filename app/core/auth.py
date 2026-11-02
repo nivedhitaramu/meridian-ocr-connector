@@ -20,6 +20,7 @@ class AuthError(Exception):
 class Identity:
     external_id: str
     email: str
+    session_id: str | None = None
 
 
 @lru_cache(maxsize=1)
@@ -49,7 +50,8 @@ def verify_token(token: str) -> Identity:
     email = claims.get("email")  # needs the session token customization in the README
     if not isinstance(email, str) or "@" not in email:
         raise AuthError("token_no_email")
-    return Identity(external_id=claims["sub"], email=email)
+    session_id = claims.get("sid")
+    return Identity(external_id=claims["sub"], email=email, session_id=session_id if isinstance(session_id, str) else None)
 
 
 def bearer_token(header: str | None) -> str:
