@@ -19,10 +19,18 @@ _RECEIPT_HINT = re.compile(r"delivery\s+receipt|proof\s+of\s+delivery|\bPOD\b|re
                            re.IGNORECASE)
 _CONTACT_LINE = re.compile(r"contact|attn|attention|phone|mobile|tel|email|e-mail|signature|signed",
                            re.IGNORECASE)
+_OTHER_TITLE = re.compile(r"commercial\s+invoice|packing\s+list", re.IGNORECASE)
+TITLE_REGION = 0.25  # top 25% of the first page
 
 
 def looks_like_receipt(text: str) -> bool:
     return bool(_RECEIPT_HINT.search(text))
+
+
+def _titled_as_other_document(ocr: OCRResult) -> bool:
+    """Only a title counts: a receipt can mention an invoice in its body."""
+    cutoff = ocr.images[0].size[1] * TITLE_REGION
+    return bool(_OTHER_TITLE.search(" ".join(w.text for w in ocr.words if w.page == 0 and w.top < cutoff)))
 
 
 def signature_band_spans(ocr: OCRResult) -> list[Span]:
@@ -44,7 +52,13 @@ def redact_pages(ocr: OCRResult, spans: list[Span]) -> list[Image.Image]:
     if not ocr.words:
         raise PipelineError("manual_review_no_boxes")
 
-    flagged_pages_lines: set[tuple[int, int]] = set()
+    # Fallback runs because OCR is poor, so a receipt's title may be unreadable. The band would
+    # erase an invoice's totals, so without a clear answer nothing is sent at all.
+    is_receipt = looks_like_receipt(ocr.text)
+    if not is_receipt and not _titled_as_other_document(ocr):
+        raise PipelineError("manual_review_unknown_type")
+
+    flagged_lines: set[tuple] = set()
     out = [img.copy() for img in ocr.images]
     draws = [ImageDraw.Draw(img) for img in out]
 
@@ -56,13 +70,13 @@ def redact_pages(ocr: OCRResult, spans: list[Span]) -> list[Image.Image]:
     # 2) Whole contact lines (label words like "Phone:" / "Email:" plus the rest of that line).
     for w in ocr.words:
         if _CONTACT_LINE.search(w.text):
-            flagged_pages_lines.add((w.page, w.top // max(w.height, 1)))
+            flagged_lines.add((w.page, w.line))
     for w in ocr.words:
-        if (w.page, w.top // max(w.height, 1)) in flagged_pages_lines:
+        if (w.page, w.line) in flagged_lines:
             _box(draws[w.page], w.left, w.top, w.width, w.height)
 
     # 3) Bottom band of a delivery receipt, where the signature sits.
-    if looks_like_receipt(ocr.text):
+    if is_receipt:
         for img, draw in zip(out, draws):
             w, h = img.size
             draw.rectangle([0, int(h * (1 - SIGNATURE_BAND)), w, h], fill="black")

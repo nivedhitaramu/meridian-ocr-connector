@@ -94,7 +94,7 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 ## Decisions
 
 - **2026-11-02: Fellowship work comes before SaaS work.**
-- **2026-11-02: The user's architecture replaces the first commit's README and docs as the reference.** Existing code is reused where it fits, moved into `core`, `ingestion`, `pipeline` and `domains/meridian`. Work is on branch `architecture-alignment`.
+- **2026-11-02: The user's architecture replaces the first commit's README and docs as the reference.** Existing code is reused where it fits, moved into `core`, `ingestion`, `pipeline` and `domains/meridian`. This is merged into `main`.
 - **Frontend:** Streamlit now, as the assignment specifies. Next.js comes after submission.
 - **OCR and PDF rendering:** Tesseract and pdf2image with Poppler, as built.
 - **Two totals on a page:** `total_quantity` holds the shipping-unit total (cartons or packages), because put-away is by carton. The check compares like with like, so 1,200 pieces on an invoice matches a packing list printing 50 cartons and 1,200 pieces.
@@ -103,18 +103,22 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 ## Current status
 
-**Last updated:** 2026-11-02, on local branch `architecture-alignment`.
+**Last updated:** 2026-11-02.
 
-**Verified by running:** `tests/test_rules.py`, `tests/test_pii_vault.py` and `tests/test_upload.py` pass (20 tests) after the restructure.
+**Merged:** PR #1 (architecture alignment) is on `main`. Issues #2-#45 hold the full plan.
 
-**Not verified:** the API, OCR, Presidio masking, the LLM call and the Streamlit page. Nothing has been run end to end since the move.
+**In review:** the privacy fixes for #4 and `tests/test_privacy.py`, on branch `privacy-fixes`.
+
+**Verified by running with those local fixes, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
+
+**Not verified:** a real LLM call, real accuracy, the Streamlit page in a browser, hosted vision and any deployed environment. Mock's 100% evaluation only proves the plumbing, because mock is tuned to the samples.
 
 **Present in the code:** upload checks, OCR, masking, extraction, rules, `/v1/extract`, `/v1/extract-eml`, telemetry, trace panel, Streamlit page, 40 samples, 20-document test sheet, 12 rule cases and an evaluation script.
 
-**Done on this branch:** code moved into architecture layers, `docs/ARCHITECTURE.md` added with six diagrams, README rewritten.
 
 **Not done**
-- [ ] Run the Presidio test and all four demo steps on a real install
+- [ ] Merge the privacy fixes (#4)
+- [ ] Click through the four demo steps in the Streamlit page
 - [ ] Measure accuracy with the real model (README says "Not measured yet")
 - [ ] Confirm the LLM provider, its model ID and that its terms exclude training on prompts
 - [ ] Deploy the live demo; the `Dockerfile` starts only the API, not Streamlit
@@ -122,17 +126,18 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - [ ] Pin dependency versions; add CI
 - [ ] Build the Target layers: PostgreSQL, Redis, workers, auth, tenancy, Next.js, AWS
 
-**Known issues, found by reading the code (fix privacy items first)**
-1. **Name leak:** `_COMPANY_WORDS` in `app/pipeline/pii.py` keeps any name containing words like Mills, Co or Global, so "Attn: John Mills" isn't masked. It's also tuned to the sample companies.
-2. **Signature band can be skipped:** `looks_like_receipt` depends on OCR text, and fallback runs when OCR is poor. A hosted vision call could then include the signature.
-3. **No output check:** a name Presidio misses can pass through the model into `fields`.
-4. **Weak contact-line grouping:** `vision.py` groups lines with `top // height`, which can miss part of a line.
-5. **`masked_before_llm` is hardcoded** to `True` rather than set by what actually happened.
-6. **Silent page limits:** PDFs stop at 5 pages and vision at 3, so a total on a later page is lost without warning.
-7. **Wrong `request_id` on errors:** it's read from the global `LAST_TRACE`, so it can belong to another request.
-8. **Public endpoints:** `/v1/trace/last` and `/v1/metrics` have no auth, and there's no rate limiting. Fix before deploying.
-9. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
+**Privacy fixes in the local change (#4):** surnames like Mills are no longer treated as company words, so a company named only with such words gets masked. Emails with unusual domains are masked. Masked text with a leftover email, mobile, Aadhaar or PAN shape blocks the model call. Model output is scrubbed. NER spans are split by line. A poor scan with an unclear type goes to manual review. Contact lines use OCR line numbers. `masked_before_llm` reports what happened.
 
-**Next step:** install and run everything, get real accuracy numbers, then fix the privacy issues.
+**Remaining known issues**
+1. **Company filter is still word-based:** a real company without a listed word gets masked, which lowers shipper and receiver accuracy. Check this with unseen documents (#9).
+2. **Personal addresses:** detection relies on Presidio's LOCATION and misses street lines, for example "14 Harbour Road".
+3. **Slow OCR:** about 3 seconds per document on this machine, so check the timeout and hosting size before deploying.
+4. **Windows setup:** `pip install -r requirements.txt` stalled for over 18 minutes on Python 3.13; installing packages in smaller groups worked. Tesseract and Poppler must be on PATH. See #10.
+5. **Silent page limits:** PDFs stop at 5 pages and vision at 3, so a total on a later page is lost without warning.
+6. **Wrong `request_id` on errors:** it's read from the global `LAST_TRACE`, so it can belong to another request.
+7. **Public endpoints:** `/v1/trace/last` and `/v1/metrics` have no auth, and there's no rate limiting. Fix before deploying.
+8. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
+
+**Next step:** merge the privacy fixes (#4), then measure real accuracy with an LLM key (#5).
 
 **Open questions for the team:** submission deadline, final LLM provider, live demo hosting, who owns what, and whether the Target layers should start before submission.

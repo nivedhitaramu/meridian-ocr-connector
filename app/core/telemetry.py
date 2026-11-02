@@ -22,7 +22,7 @@ SAFE_KEYS = {
     "request_id", "stage", "duration_ms", "level", "ts", "outcome", "error_class",
     "doc_type", "page_count", "file_ext", "file_count", "slot",
     "ocr_engine", "char_count", "mean_confidence", "fallback",
-    "entity_counts", "placeholder_count",
+    "entity_counts", "placeholder_count", "output_scrubbed",
     "model", "prompt_version", "prompt_tokens", "completion_tokens",
     "check_status",
 }

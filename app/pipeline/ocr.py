@@ -22,6 +22,7 @@ class Word:
     conf: float
     start: int  # char offset in OCRResult.text
     end: int
+    line: tuple[int, int, int] = (0, 0, 0)  # Tesseract's block, paragraph and line numbers
 
 
 @dataclass
@@ -98,7 +99,7 @@ def run_ocr(images: list[Image.Image]) -> OCRResult:
                 page=page_no, text=token,
                 left=data["left"][i], top=data["top"][i],
                 width=data["width"][i], height=data["height"][i],
-                conf=conf, start=cursor, end=cursor + len(token),
+                conf=conf, start=cursor, end=cursor + len(token), line=line_key,
             ))
             parts.append(token)
             cursor += len(token)
