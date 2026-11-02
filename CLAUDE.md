@@ -75,7 +75,7 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 
 ## Commands
 
-Needs Python 3.11, Tesseract and Poppler on PATH. Docker is optional, and the `Dockerfile` installs both.
+Needs Python 3.13, Tesseract and Poppler on PATH. Docker is optional, and the `Dockerfile` installs both.
 
 ```bash
 python -m venv .venv
@@ -109,6 +109,8 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **In review:** the privacy fixes for #4 and `tests/test_privacy.py`, on branch `privacy-fixes`.
 
+**In review:** branch `hardening`, built on `privacy-fixes`: #7 (rate limit, internal token), #8 (page limits, request IDs) and #10 (pinned requirements, CI).
+
 **Verified by running with those local fixes, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 
 **Not verified:** a real LLM call, real accuracy, the Streamlit page in a browser, hosted vision and any deployed environment. Mock's 100% evaluation only proves the plumbing, because mock is tuned to the samples.
@@ -123,7 +125,6 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - [ ] Confirm the LLM provider, its model ID and that its terms exclude training on prompts
 - [ ] Deploy the live demo; the `Dockerfile` starts only the API, not Streamlit
 - [ ] Confirm the Mermaid diagrams render on GitHub
-- [ ] Pin dependency versions; add CI
 - [ ] Build the Target layers: PostgreSQL, Redis, workers, auth, tenancy, Next.js, AWS
 
 **Privacy fixes in the local change (#4):** surnames like Mills are no longer treated as company words, so a company named only with such words gets masked. Emails with unusual domains are masked. Masked text with a leftover email, mobile, Aadhaar or PAN shape blocks the model call. Model output is scrubbed. NER spans are split by line. A poor scan with an unclear type goes to manual review. Contact lines use OCR line numbers. `masked_before_llm` reports what happened.
@@ -132,11 +133,8 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 1. **Company filter is still word-based:** a real company without a listed word gets masked, which lowers shipper and receiver accuracy. Check this with unseen documents (#9).
 2. **Personal addresses:** detection relies on Presidio's LOCATION and misses street lines, for example "14 Harbour Road".
 3. **Slow OCR:** about 3 seconds per document on this machine, so check the timeout and hosting size before deploying.
-4. **Windows setup:** `pip install -r requirements.txt` stalled for over 18 minutes on Python 3.13; installing packages in smaller groups worked. Tesseract and Poppler must be on PATH. See #10.
-5. **Silent page limits:** PDFs stop at 5 pages and vision at 3, so a total on a later page is lost without warning.
-6. **Wrong `request_id` on errors:** it's read from the global `LAST_TRACE`, so it can belong to another request.
-7. **Public endpoints:** `/v1/trace/last` and `/v1/metrics` have no auth, and there's no rate limiting. Fix before deploying.
-8. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
+4. **Rate limit is per process and per client address:** behind Streamlit, all users share one address, so the limit protects the LLM quota rather than separating users.
+5. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
 
 **Next step:** merge the privacy fixes (#4), then measure real accuracy with an LLM key (#5).
 
