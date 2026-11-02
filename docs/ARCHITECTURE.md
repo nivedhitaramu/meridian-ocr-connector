@@ -13,7 +13,7 @@ Each diagram is labelled:
 |---|---|---|
 | 1. Experience | Streamlit clerk page with trace panel | Next.js web app and admin console |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
-| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members and roles | Shipments, jobs, review, audit |
+| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles and audit events | Shipments, jobs, review |
 | 4. Data and messaging | Temporary local files, deleted after each request; PostgreSQL schema and migrations, not yet used by the app | App use of PostgreSQL, Redis, job queue, private object storage |
 | 5. Document intelligence | All stages, running inside the API process | The same stages in separate workers |
 | 6. Observability | OpenTelemetry spans, safe JSON logs, in-memory counters | Collector, Grafana or CloudWatch dashboards |
@@ -253,6 +253,7 @@ erDiagram
 Rules for this schema:
 - Every tenant table carries `organization_id`, and foreign keys between tenant tables include it. PostgreSQL row-level security also limits each signed-in request to one organization.
 - No table stores original filenames, OCR text, prompts or the placeholder map.
+- Audit events are append-only for signed-in requests, and hold record IDs, never field values.
 - `storage_key` is cleared once the file is deleted.
 
 ## 4. API architecture

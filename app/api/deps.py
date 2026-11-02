@@ -8,7 +8,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from ..core import auth
-from ..db import users
+from ..db import audit, users
 from ..db.models import MEMBER_ROLES, User
 from ..db.session import get_db
 from ..db.tenancy import set_scope
@@ -29,9 +29,17 @@ class Member:
     role: str
 
 
+def request_id_for(request: Request) -> str:
+    """One ID per request, for matching audit events to logs."""
+    if not hasattr(request.state, "request_id"):
+        request.state.request_id = str(uuid.uuid4())
+    return request.state.request_id
+
+
 def current_user(request: Request, session: Session = Depends(get_db)) -> User:
     """Every product route depends on this. The assignment's /v1/extract stays open."""
     identity = auth.verify_token(auth.bearer_token(request.headers.get("Authorization")))
+    request.state.identity = identity
     return users.user_for(session, identity)
 
 
@@ -50,6 +58,9 @@ def current_member(request: Request, user: User = Depends(current_user), session
         raise NotFound
     member = Member(user_id=user_id, organization_id=rows[0].organization_id, role=rows[0].role)
     set_scope(session, user_id, member.organization_id)
+    if request.state.identity.session_id:
+        audit.record_session_once(session, member.organization_id, user_id, request.state.identity.session_id,
+                                  request_id_for(request))
     return member
 
 

@@ -155,6 +155,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/organization/members` | List members; supervisor or admin |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
 | `GET /v1/shipments/{id}` | One shipment in the current organization |
+| `GET /v1/audit-events` | Newest audit events for the organization; admin |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 
