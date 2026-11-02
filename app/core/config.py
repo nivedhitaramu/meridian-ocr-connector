@@ -57,6 +57,10 @@ RATE_LIMIT_PER_MINUTE = _int("RATE_LIMIT_PER_MINUTE", 30)  # per client, on the 
 # When set, /v1/trace/last and /v1/metrics need this value in the X-Internal-Token header. Set it when deployed.
 INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 
+# --- Database --------------------------------------------------------------
+# Empty is fine for the stateless API, which doesn't use the database yet.
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
 # --- Telemetry -------------------------------------------------------------
 TELEMETRY_LOG = Path(os.getenv("TELEMETRY_LOG", "./logs/telemetry.jsonl")).resolve()
 OTEL_CONSOLE_EXPORT = os.getenv("OTEL_CONSOLE_EXPORT", "1") == "1"

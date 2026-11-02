@@ -109,6 +109,8 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **In progress:** #13 local Docker stack on branch `local-stack`. Docker isn't installed on this machine, so CI verifies it. The worker waits for #19.
 
+**In progress:** #14 PostgreSQL schema and migrations on branch `database`, built on `local-stack`. Nothing reads the tables yet.
+
 **Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 
 **Not verified:** a real LLM call, real accuracy, hosted vision and any deployed environment. Mock's 100% evaluation only proves the plumbing, because mock is tuned to the samples.

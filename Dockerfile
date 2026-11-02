@@ -9,6 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt && python -m spacy download e
 
 COPY app ./app
 COPY ui ./ui
+COPY migrations ./migrations
+COPY alembic.ini .
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
