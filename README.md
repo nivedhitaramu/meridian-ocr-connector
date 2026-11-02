@@ -66,7 +66,7 @@ docs/                Architecture
 
 ## Quick start
 
-You need Python 3.11, [Tesseract](https://github.com/tesseract-ocr/tesseract) and [Poppler](https://poppler.freedesktop.org/) on your PATH.
+You need Python 3.13, [Tesseract](https://github.com/tesseract-ocr/tesseract) and [Poppler](https://poppler.freedesktop.org/) on your PATH.
 
 ```bash
 python -m venv .venv
@@ -145,6 +145,11 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /healthz` | Health check |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
+
+**Limits:**
+- PDFs over 5 pages are refused, so a total on a later page is never silently missed.
+- Each client can make 30 extract requests a minute by default (`RATE_LIMIT_PER_MINUTE`), and further requests get a 429.
+- When `INTERNAL_API_TOKEN` is set, `/v1/trace/last` and `/v1/metrics` need it in the `X-Internal-Token` header. Set it when deployed.
 
 ## Business rules
 

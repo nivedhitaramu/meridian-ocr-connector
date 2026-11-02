@@ -5,6 +5,7 @@ import requests
 import streamlit as st
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+INTERNAL_HEADERS = {"X-Internal-Token": os.getenv("INTERNAL_API_TOKEN", "")}
 STATUS_STYLE = {
     "Match": ("✅", "green"), "Mismatch": ("❌", "red"),
     "Incomplete": ("⚠️", "orange"), "Not applicable": ("➖", "gray"),
@@ -73,7 +74,7 @@ if result:
                    f"masked_before_llm={result['pii']['masked_before_llm']}")
         with st.expander("Server trace events (sanitized)"):
             try:
-                st.json(requests.get(f"{API_URL}/v1/trace/last", timeout=10).json())
+                st.json(requests.get(f"{API_URL}/v1/trace/last", headers=INTERNAL_HEADERS, timeout=10).json())
             except requests.RequestException:
                 st.write("Trace unavailable.")
         with st.expander("Raw JSON response"):

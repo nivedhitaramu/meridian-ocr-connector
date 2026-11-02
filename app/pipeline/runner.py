@@ -28,14 +28,20 @@ def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: Reques
             delta = {k: v - before.get(k, 0) for k, v in vault.entity_counts.items() if v - before.get(k, 0)}
             attrs.update(entity_counts=delta, placeholder_count=vault.placeholder_count)
 
+        protected = False  # set only once this document's redaction or masking checks have passed
         with tr.stage("llm", slot=slot, prompt_version=config.PROMPT_VERSION) as attrs:
             if fallback:
                 # Never the raw scan: redact boxes, contact lines and receipt signature band first.
                 redacted = vision.redact_pages(result, spans)
+                protected = True
                 out = llm.extract_from_images(redacted)
             else:
+                if pii.residual_types(masked_text):  # fail closed: this text must not leave
+                    raise PipelineError("manual_review_residual_pii")
+                protected = True
                 out = llm.extract_from_text(masked_text)
-            attrs.update(model=out.model, prompt_tokens=out.prompt_tokens,
+            scrubbed = pii.scrub_fields(out.extraction.fields, vault)
+            attrs.update(model=out.model, prompt_tokens=out.prompt_tokens, output_scrubbed=scrubbed,
                          completion_tokens=out.completion_tokens, doc_type=out.extraction.document_type)
 
         parsed = rules.post_process(out.extraction)
@@ -44,7 +50,7 @@ def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: Reques
             quantity_unit=parsed.unit, quantity_totals=parsed.totals,
             page_count=result.page_count, used_vision_fallback=fallback,
         )
-        return doc, parsed, out.model
+        return doc, parsed, out.model, protected
     finally:
         stored.delete()  # the upload never outlives the request
 
@@ -56,12 +62,13 @@ def run(files: list[bytes]) -> ExtractResponse:
     try:
         with tr.root():
             tr.emit(stage="request.start", file_count=len(files))
-            docs, parsed, models = [], [], set()
+            docs, parsed, models, protected = [], [], set(), []
             for slot, data in enumerate(files, start=1):
-                d, p, m = _process_one(slot, data, vault, tr)
+                d, p, m, safe = _process_one(slot, data, vault, tr)
                 docs.append(d)
                 parsed.append(p)
                 models.add(m)
+                protected.append(safe)
 
             with tr.stage("rule") as attrs:
                 result = rules.check(parsed)
@@ -72,7 +79,7 @@ def run(files: list[bytes]) -> ExtractResponse:
                 document_type=docs[0].document_type,
                 fields=docs[0].fields,
                 check=result,
-                pii=PIIInfo(masked_before_llm=True, entity_counts=dict(vault.entity_counts),
+                pii=PIIInfo(masked_before_llm=all(protected), entity_counts=dict(vault.entity_counts),
                             placeholder_count=vault.placeholder_count),
                 pipeline=PipelineInfo(
                     ocr_engine="tesseract",
@@ -86,10 +93,11 @@ def run(files: list[bytes]) -> ExtractResponse:
             return response
     except PipelineError as err:
         _record(tr, "error", error_class=err.error_class)
+        err.request_id = request_id
         raise
     except Exception as exc:
         _record(tr, "error", error_class="internal_error")
-        raise PipelineError("internal_error") from exc
+        raise PipelineError("internal_error", request_id) from exc
     finally:
         vault.clear()  # placeholder map dies with the request
 

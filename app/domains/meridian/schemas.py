@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DocumentType = Literal["commercial_invoice", "packing_list", "delivery_receipt", "unknown"]
 CheckStatus = Literal["Match", "Mismatch", "Incomplete", "Not applicable"]
@@ -52,6 +52,8 @@ def normalize_date(value) -> str | None:
 
 
 class MeridianFields(BaseModel):
+    model_config = ConfigDict(hide_input_in_errors=True)  # validation errors must not echo values
+
     invoice_number: str | None = None
     shipper_name: str | None = None
     receiver_name: str | None = None
@@ -87,6 +89,8 @@ class MeridianFields(BaseModel):
 
 
 class QuantityTotal(BaseModel):
+    model_config = ConfigDict(hide_input_in_errors=True)
+
     value: float
     unit: str | None = None
 
@@ -101,6 +105,7 @@ class QuantityTotal(BaseModel):
 
 class LLMExtraction(BaseModel):
     """What the model must return. Extra helper keys live outside `fields`."""
+    model_config = ConfigDict(hide_input_in_errors=True)
     document_type: DocumentType
     fields: MeridianFields
     quantity_totals: list[QuantityTotal] = Field(default_factory=list)
@@ -120,7 +125,7 @@ class Check(BaseModel):
 
 
 class PIIInfo(BaseModel):
-    masked_before_llm: bool = True
+    masked_before_llm: bool = False
     entity_counts: dict[str, int] = Field(default_factory=dict)
     placeholder_count: int = 0
 

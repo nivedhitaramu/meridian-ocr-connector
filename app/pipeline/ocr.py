@@ -22,6 +22,7 @@ class Word:
     conf: float
     start: int  # char offset in OCRResult.text
     end: int
+    line: tuple[int, int, int] = (0, 0, 0)  # Tesseract's block, paragraph and line numbers
 
 
 @dataclass
@@ -51,13 +52,18 @@ class OCRResult:
 def load_pages(path: Path, kind: str) -> list[Image.Image]:
     try:
         if kind == "pdf":
-            from pdf2image import convert_from_path  # needs poppler installed
+            from pdf2image import convert_from_path, pdfinfo_from_path  # needs poppler installed
 
-            pages = convert_from_path(str(path), dpi=config.OCR_DPI, first_page=1, last_page=5)
+            # Refuse long PDFs outright: a total on a page we skipped would give a wrong answer.
+            if pdfinfo_from_path(str(path))["Pages"] > config.MAX_PDF_PAGES:
+                raise PipelineError("too_many_pages")
+            pages = convert_from_path(str(path), dpi=config.OCR_DPI)
         else:
             img = Image.open(path)
             img = ImageOps.exif_transpose(img)
             pages = [img.convert("RGB")]
+    except PipelineError:
+        raise
     except Exception as exc:  # corrupt file, poppler missing, etc.
         raise PipelineError("file_unreadable") from exc
     if not pages:
@@ -98,7 +104,7 @@ def run_ocr(images: list[Image.Image]) -> OCRResult:
                 page=page_no, text=token,
                 left=data["left"][i], top=data["top"][i],
                 width=data["width"][i], height=data["height"][i],
-                conf=conf, start=cursor, end=cursor + len(token),
+                conf=conf, start=cursor, end=cursor + len(token), line=line_key,
             ))
             parts.append(token)
             cursor += len(token)
