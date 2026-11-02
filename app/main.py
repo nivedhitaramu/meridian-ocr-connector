@@ -2,15 +2,20 @@
 from __future__ import annotations
 
 import hmac
+import json
 import logging
 import uuid
 
-from fastapi import FastAPI, File, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
-from .core import config
+from .core import auth, config
+from .db import users
+from .db.models import User
+from .db.session import get_db
 from .ingestion import eml
 from .pipeline import pii, runner as pipeline
 from .core.errors import CLIENT_MESSAGE, PipelineError
@@ -19,13 +24,14 @@ from .domains.meridian.schemas import ExtractResponse
 from .core.telemetry import LAST_TRACE, METRICS, instrument_fastapi
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+log = logging.getLogger("meridian")
 
 app = FastAPI(title="Meridian Freight OCR Connector", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,  # your own page only
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 instrument_fastapi(app)
 limiter = RateLimiter(config.RATE_LIMIT_PER_MINUTE)
@@ -34,6 +40,18 @@ limiter = RateLimiter(config.RATE_LIMIT_PER_MINUTE)
 @app.on_event("startup")
 def _startup() -> None:
     pii.warm_up()
+
+
+@app.exception_handler(auth.AuthError)
+def _not_signed_in(_: Request, err: auth.AuthError) -> JSONResponse:
+    log.info(json.dumps({"level": "info", "stage": "auth", "error_class": str(err)}))  # the class only, never the token
+    return JSONResponse(status_code=401, content={"error": "Not signed in."}, headers={"WWW-Authenticate": "Bearer"})
+
+
+def current_user(request: Request, session: Session = Depends(get_db)) -> User:
+    """Every product route depends on this. The assignment's /v1/extract stays open."""
+    identity = auth.verify_token(auth.bearer_token(request.headers.get("Authorization")))
+    return users.user_for(session, identity)
 
 
 async def _read_capped(f: UploadFile) -> bytes:
@@ -86,6 +104,16 @@ async def extract_eml(request: Request, file: UploadFile = File(...)):
         return await run_in_threadpool(pipeline.run, blobs)
     except PipelineError as err:
         return _error(err)
+
+
+@app.get("/v1/me")
+def me(user: User = Depends(current_user), session: Session = Depends(get_db)):
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "memberships": [{"organization_id": str(m.organization_id), "role": m.role}
+                        for m in users.memberships(session, user)],
+    }
 
 
 @app.get("/v1/trace/last")

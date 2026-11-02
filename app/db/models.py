@@ -64,6 +64,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = _id()
+    external_id: Mapped[str] = mapped_column(String(100), unique=True)  # the Clerk user ID
     email: Mapped[str] = mapped_column(String(320), unique=True)
     created_at: Mapped[datetime] = _created_at()
 

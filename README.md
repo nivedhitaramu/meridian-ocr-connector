@@ -149,6 +149,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/trace/last` | Sanitized trace of the last request |
 | `GET /v1/metrics` | Counters |
 | `GET /healthz` | Health check |
+| `GET /v1/me` | The signed-in user and their organizations; needs a Clerk token |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 
@@ -156,6 +157,15 @@ Errors return only `{"error": "Could not read this document.", "request_id": "..
 - PDFs over 5 pages are refused, so a total on a later page is never silently missed.
 - Each client can make 30 extract requests a minute by default (`RATE_LIMIT_PER_MINUTE`), and further requests get a 429.
 - When `INTERNAL_API_TOKEN` is set, `/v1/trace/last` and `/v1/metrics` need it in the `X-Internal-Token` header. Set it when deployed.
+
+## Sign-in
+
+[Clerk](https://clerk.com) handles sign-up, sign-in, sign-out and password reset. The API only verifies Clerk's tokens, and creates a `users` row on first sign-in. `POST /v1/extract` stays open, as the assignment requires.
+
+To set it up:
+1. Create a Clerk application.
+2. Set `CLERK_ISSUER` in `.env` to its Frontend API URL, and `CLERK_AUTHORIZED_PARTIES` to your page's address.
+3. In the Clerk dashboard, go to **Sessions**, then customize the session token with `{"email": "{{user.primary_email_address}}"}`. Without this, tokens are refused.
 
 ## Business rules
 

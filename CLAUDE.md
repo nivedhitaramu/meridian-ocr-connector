@@ -99,6 +99,7 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - **OCR and PDF rendering:** Tesseract and pdf2image with Poppler, as built.
 - **Two totals on a page:** `total_quantity` holds the shipping-unit total (cartons or packages), because put-away is by carton. The check compares like with like, so 1,200 pieces on an invoice matches a packing list printing 50 cartons and 1,200 pieces.
 - **Person-only shipper or receiver:** the placeholder stays in the field, and the schema doesn't grow.
+- **2026-11-02: Sign-in uses Clerk.** The API verifies tokens and stores no passwords. Product routes depend on `current_user`; `POST /v1/extract` stays open.
 - **Hosted vision:** off unless `VISION_MODEL` is set; otherwise unreadable scans return manual review.
 
 ## Current status
@@ -110,6 +111,8 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 **In progress:** #13 local Docker stack on branch `local-stack`. Docker isn't installed on this machine, so CI verifies it. The worker waits for #19.
 
 **In progress:** #14 PostgreSQL schema and migrations on branch `database`, built on `local-stack`. Nothing reads the tables yet.
+
+**In progress:** #15 Clerk token verification and `GET /v1/me` on branch `auth`, built on `database`. It's tested with locally generated keys, not a real Clerk application. Sign-in screens come with #24.
 
 **Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 

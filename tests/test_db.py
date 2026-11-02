@@ -98,7 +98,7 @@ def test_document_cannot_point_at_another_tenants_shipment(engine):
 def test_reviewer_must_belong_to_the_organization(engine):
     with Session(engine) as session:
         a, b = _org(session), _org(session)
-        user = models.User(email=f"{uuid.uuid4()}@example.com")
+        user = models.User(external_id=str(uuid.uuid4()), email=f"{uuid.uuid4()}@example.com")
         session.add(user)
         session.flush()
         session.add(models.OrganizationMember(organization_id=b.id, user_id=user.id))
