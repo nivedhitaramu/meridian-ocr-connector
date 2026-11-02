@@ -150,6 +150,11 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/metrics` | Counters |
 | `GET /healthz` | Health check |
 | `GET /v1/me` | The signed-in user and their organizations; needs a Clerk token |
+| `POST /v1/organizations` | Start an organization and become its admin |
+| `GET /v1/organization` | The current organization |
+| `GET /v1/organization/members` | List members; supervisor or admin |
+| `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
+| `GET /v1/shipments/{id}` | One shipment in the current organization |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 
@@ -166,6 +171,8 @@ To set it up:
 1. Create a Clerk application.
 2. Set `CLERK_ISSUER` in `.env` to its Frontend API URL, and `CLERK_AUTHORIZED_PARTIES` to your page's address.
 3. In the Clerk dashboard, go to **Sessions**, then customize the session token with `{"email": "{{user.primary_email_address}}"}`. Without this, tokens are refused.
+
+**Organizations:** a person's organization comes from their memberships, never a request body. `X-Organization-Id` picks one when they belong to several. Another organization's records return 404, and PostgreSQL row-level security enforces this even if a query forgets its filter.
 
 ## Business rules
 

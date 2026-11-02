@@ -13,7 +13,7 @@ Each diagram is labelled:
 |---|---|---|
 | 1. Experience | Streamlit clerk page with trace panel | Next.js web app and admin console |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
-| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml` | Tenants, shipments, jobs, review, audit |
+| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members and roles | Shipments, jobs, review, audit |
 | 4. Data and messaging | Temporary local files, deleted after each request; PostgreSQL schema and migrations, not yet used by the app | App use of PostgreSQL, Redis, job queue, private object storage |
 | 5. Document intelligence | All stages, running inside the API process | The same stages in separate workers |
 | 6. Observability | OpenTelemetry spans, safe JSON logs, in-memory counters | Collector, Grafana or CloudWatch dashboards |
@@ -251,7 +251,7 @@ erDiagram
 ```
 
 Rules for this schema:
-- Every tenant table carries `organization_id`, and foreign keys between tenant tables include it. Postgres row-level security comes with #16.
+- Every tenant table carries `organization_id`, and foreign keys between tenant tables include it. PostgreSQL row-level security also limits each signed-in request to one organization.
 - No table stores original filenames, OCR text, prompts or the placeholder map.
 - `storage_key` is cleared once the file is deleted.
 
@@ -340,7 +340,7 @@ flowchart TB
 
 ## 6. Security architecture
 
-**Status: Partly built.** Masking, the fallback rule and generic errors exist. The "Safe to send?" residual scan is Target, and there's no separate gateway component yet. Authentication, tenant isolation and network limits are also Target.
+**Status: Partly built.** Masking, the "Safe to send?" residual scan, the fallback rule, output scrubbing, generic errors, token verification and tenant isolation exist. There's no separate gateway component yet, and sign-in screens and network limits are Target.
 
 ```mermaid
 flowchart TB
@@ -367,6 +367,8 @@ Controls across the system:
 | Business decision | Deterministic code, never the model |
 
 ## Decisions
+
+**Requests switch to a restricted database role (2026-11-02).** PostgreSQL superusers skip row-level security, and the database user in `docker-compose.yml` is one. Each signed-in request therefore runs `SET LOCAL ROLE meridian_app`, so the policies always apply. A deployed app should also connect as a non-superuser.
 
 **Sign-in uses Clerk (2026-11-02).** It's the fastest route to sign-up, sign-in and password reset, and works well with the planned Next.js app. The API only verifies signed tokens with Clerk's public keys, so it holds no passwords. The trade-offs are an outside service holding user emails, and a pricing dependency to review before launch. AWS Cognito was the alternative: it keeps users in our AWS account, but it's slower to set up and harder to test locally.
 

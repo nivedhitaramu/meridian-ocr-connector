@@ -100,19 +100,16 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - **Two totals on a page:** `total_quantity` holds the shipping-unit total (cartons or packages), because put-away is by carton. The check compares like with like, so 1,200 pieces on an invoice matches a packing list printing 50 cartons and 1,200 pieces.
 - **Person-only shipper or receiver:** the placeholder stays in the field, and the schema doesn't grow.
 - **2026-11-02: Sign-in uses Clerk.** The API verifies tokens and stores no passwords. Product routes depend on `current_user`; `POST /v1/extract` stays open.
+- **2026-11-02: Tenant isolation.** The organization comes from memberships, never a request body. Other tenants' records return 404. Each signed-in request runs as the restricted `meridian_app` role, because superusers skip row-level security. New tenant tables must add a policy in their migration.
 - **Hosted vision:** off unless `VISION_MODEL` is set; otherwise unreadable scans return manual review.
 
 ## Current status
 
 **Last updated:** 2026-11-02.
 
-**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10) and CI. Issues #2-#45 hold the full plan.
+**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14) and Clerk token verification (#15, sign-in screens pending). Issues #2-#45 hold the full plan.
 
-**In progress:** #13 local Docker stack on branch `local-stack`. Docker isn't installed on this machine, so CI verifies it. The worker waits for #19.
-
-**In progress:** #14 PostgreSQL schema and migrations on branch `database`, built on `local-stack`. Nothing reads the tables yet.
-
-**In progress:** #15 Clerk token verification and `GET /v1/me` on branch `auth`, built on `database`. It's tested with locally generated keys, not a real Clerk application. Sign-in screens come with #24.
+**In progress:** #16 organizations, roles and row-level security on branch `tenancy`. Row-level security can only be tested on PostgreSQL, which runs in CI, not on this machine.
 
 **Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 
