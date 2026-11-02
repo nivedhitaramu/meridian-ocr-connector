@@ -1,0 +1,11 @@
+.env
+.uploads/
+logs/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+samples/results_*.csv
+samples/_tmp_*
+.DS_Store

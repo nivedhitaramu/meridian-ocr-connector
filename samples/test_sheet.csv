@@ -1,0 +1,21 @@
+file,expected_document_type,invoice_number,shipper_name,receiver_name,shipment_date,total_quantity,total_weight_kg
+S01_invoice.pdf,commercial_invoice,MF-10040,Kestrel Exports,Meridian Freight Warehouse,2026-01-12,40,312.0
+S01_packing.pdf,packing_list,MF-10040,Kestrel Exports,Meridian Freight Warehouse,2026-01-12,40,312.0
+S02_invoice.pdf,commercial_invoice,MF-88421,Kestrel Exports,Meridian Freight Warehouse,2026-02-02,120,860.5
+S02_packing.pdf,packing_list,MF-88421,Kestrel Exports,Meridian Freight Warehouse,2026-02-02,120,860.5
+S03_invoice.pdf,commercial_invoice,MF-31200,Bluefin Textiles Pvt Ltd,Meridian Freight Warehouse,2026-02-05,1200,1450.0
+S03_packing.pdf,packing_list,MF-31200,Bluefin Textiles Pvt Ltd,Meridian Freight Warehouse,2026-02-05,50,1450.0
+S04_invoice.pdf,commercial_invoice,MF-41180,Saffron Agro Traders,Meridian Freight Warehouse,2026-02-09,120,905.0
+S04_packing.pdf,packing_list,MF-41180,Saffron Agro Traders,Meridian Freight Warehouse,2026-02-09,118,890.2
+S05_invoice.pdf,commercial_invoice,MF-51440,Northwind Electronics Ltd,Meridian Freight Warehouse,2026-02-11,1440,640.0
+S05_packing.pdf,packing_list,MF-51440,Northwind Electronics Ltd,Meridian Freight Warehouse,2026-02-11,120,640.0
+S06_invoice.pdf,commercial_invoice,MF-60120,Coral Ceramics Industries,Meridian Freight Warehouse,2026-02-14,120,860.46
+S06_packing.pdf,packing_list,MF-60120,Coral Ceramics Industries,Meridian Freight Warehouse,2026-02-14,120,860.46
+S08_invoice.pdf,commercial_invoice,MF-80300,Saffron Agro Traders,Meridian Freight Warehouse,2026-02-18,300,210.0
+S08_packing.pdf,packing_list,MF-80300,Saffron Agro Traders,Meridian Freight Warehouse,2026-02-18,310,214.0
+S11_invoice.jpg,commercial_invoice,MF-11500,Kestrel Exports,Meridian Freight Warehouse,2026-02-25,500,3980.0
+S11_packing.jpg,packing_list,MF-11500,Kestrel Exports,Meridian Freight Warehouse,2026-02-25,50,410.0
+S02_receipt.pdf,delivery_receipt,MF-88421,Kestrel Exports,Meridian Freight Warehouse,2026-02-02,120,
+S04_receipt.pdf,delivery_receipt,MF-41180,Saffron Agro Traders,Meridian Freight Warehouse,2026-02-09,118,
+S10_receipt.png,delivery_receipt,MF-10250,Coral Ceramics Industries,Meridian Freight Warehouse,2026-02-23,250,
+S10_invoice.png,commercial_invoice,MF-10250,Coral Ceramics Industries,Meridian Freight Warehouse,2026-02-23,250,2210.0

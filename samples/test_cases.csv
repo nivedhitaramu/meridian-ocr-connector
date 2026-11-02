@@ -1,0 +1,13 @@
+case,file,file2,expected_status
+S01-pair,S01_invoice.pdf,S01_packing.pdf,Match
+S02-pair,S02_invoice.pdf,S02_packing.pdf,Match
+S03-pair,S03_invoice.pdf,S03_packing.pdf,Match
+S04-pair,S04_invoice.pdf,S04_packing.pdf,Mismatch
+S05-pair,S05_invoice.pdf,S05_packing.pdf,Mismatch
+S06-pair,S06_invoice.pdf,S06_packing.pdf,Match
+S08-pair,S08_invoice.pdf,S08_packing.pdf,Mismatch
+S11-pair,S11_invoice.jpg,S11_packing.jpg,Mismatch
+S02-receipt,S02_receipt.pdf,,Not applicable
+S04-receipt,S04_receipt.pdf,,Not applicable
+S10-receipt,S10_receipt.png,,Not applicable
+S10-invoice-only,S10_invoice.png,,Incomplete

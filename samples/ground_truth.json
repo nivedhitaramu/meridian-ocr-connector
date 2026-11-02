@@ -1,0 +1,483 @@
+{
+  "S01_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S01",
+    "fields": {
+      "invoice_number": "MF-10040",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-01-12",
+      "total_quantity": 40,
+      "total_weight_kg": 312.0
+    }
+  },
+  "S01_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S01",
+    "fields": {
+      "invoice_number": "MF-10040",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-01-12",
+      "total_quantity": 40,
+      "total_weight_kg": 312.0
+    }
+  },
+  "S01_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S01",
+    "fields": {
+      "invoice_number": "MF-10040",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-01-12",
+      "total_quantity": 40,
+      "total_weight_kg": null
+    }
+  },
+  "S02_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S02",
+    "fields": {
+      "invoice_number": "MF-88421",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-02",
+      "total_quantity": 120,
+      "total_weight_kg": 860.5
+    }
+  },
+  "S02_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S02",
+    "fields": {
+      "invoice_number": "MF-88421",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-02",
+      "total_quantity": 120,
+      "total_weight_kg": 860.5
+    }
+  },
+  "S02_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S02",
+    "fields": {
+      "invoice_number": "MF-88421",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-02",
+      "total_quantity": 120,
+      "total_weight_kg": null
+    }
+  },
+  "S03_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S03",
+    "fields": {
+      "invoice_number": "MF-31200",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-05",
+      "total_quantity": 1200,
+      "total_weight_kg": 1450.0
+    }
+  },
+  "S03_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S03",
+    "fields": {
+      "invoice_number": "MF-31200",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-05",
+      "total_quantity": 50,
+      "total_weight_kg": 1450.0
+    }
+  },
+  "S03_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S03",
+    "fields": {
+      "invoice_number": "MF-31200",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-05",
+      "total_quantity": 50,
+      "total_weight_kg": null
+    }
+  },
+  "S04_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S04",
+    "fields": {
+      "invoice_number": "MF-41180",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-09",
+      "total_quantity": 120,
+      "total_weight_kg": 905.0
+    }
+  },
+  "S04_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S04",
+    "fields": {
+      "invoice_number": "MF-41180",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-09",
+      "total_quantity": 118,
+      "total_weight_kg": 890.2
+    }
+  },
+  "S04_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S04",
+    "fields": {
+      "invoice_number": "MF-41180",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-09",
+      "total_quantity": 118,
+      "total_weight_kg": null
+    }
+  },
+  "S05_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S05",
+    "fields": {
+      "invoice_number": "MF-51440",
+      "shipper_name": "Northwind Electronics Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-11",
+      "total_quantity": 1440,
+      "total_weight_kg": 640.0
+    }
+  },
+  "S05_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S05",
+    "fields": {
+      "invoice_number": "MF-51440",
+      "shipper_name": "Northwind Electronics Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-11",
+      "total_quantity": 120,
+      "total_weight_kg": 640.0
+    }
+  },
+  "S05_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S05",
+    "fields": {
+      "invoice_number": "MF-51440",
+      "shipper_name": "Northwind Electronics Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-11",
+      "total_quantity": 120,
+      "total_weight_kg": null
+    }
+  },
+  "S06_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S06",
+    "fields": {
+      "invoice_number": "MF-60120",
+      "shipper_name": "Coral Ceramics Industries",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-14",
+      "total_quantity": 120,
+      "total_weight_kg": 860.46
+    }
+  },
+  "S06_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S06",
+    "fields": {
+      "invoice_number": "MF-60120",
+      "shipper_name": "Coral Ceramics Industries",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-14",
+      "total_quantity": 120,
+      "total_weight_kg": 860.46
+    }
+  },
+  "S06_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S06",
+    "fields": {
+      "invoice_number": "MF-60120",
+      "shipper_name": "Coral Ceramics Industries",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-14",
+      "total_quantity": 120,
+      "total_weight_kg": null
+    }
+  },
+  "S07_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S07",
+    "fields": {
+      "invoice_number": "MF-70075",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-16",
+      "total_quantity": 75,
+      "total_weight_kg": 520.0
+    }
+  },
+  "S07_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S07",
+    "fields": {
+      "invoice_number": "MF-70075",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-16",
+      "total_quantity": 75,
+      "total_weight_kg": 515.5
+    }
+  },
+  "S07_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S07",
+    "fields": {
+      "invoice_number": "MF-70075",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-16",
+      "total_quantity": 75,
+      "total_weight_kg": null
+    }
+  },
+  "S08_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S08",
+    "fields": {
+      "invoice_number": "MF-80300",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-18",
+      "total_quantity": 300,
+      "total_weight_kg": 210.0
+    }
+  },
+  "S08_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S08",
+    "fields": {
+      "invoice_number": "MF-80300",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-18",
+      "total_quantity": 310,
+      "total_weight_kg": 214.0
+    }
+  },
+  "S08_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S08",
+    "fields": {
+      "invoice_number": "MF-80300",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-18",
+      "total_quantity": 310,
+      "total_weight_kg": null
+    }
+  },
+  "S09_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S09",
+    "fields": {
+      "invoice_number": "MF-90018",
+      "shipper_name": "Northwind Electronics Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-20",
+      "total_quantity": 18,
+      "total_weight_kg": 7420.0
+    }
+  },
+  "S09_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S09",
+    "fields": {
+      "invoice_number": "MF-90018",
+      "shipper_name": "Northwind Electronics Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-20",
+      "total_quantity": 18,
+      "total_weight_kg": 7420.0
+    }
+  },
+  "S09_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S09",
+    "fields": {
+      "invoice_number": "MF-90018",
+      "shipper_name": "Northwind Electronics Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-20",
+      "total_quantity": 18,
+      "total_weight_kg": null
+    }
+  },
+  "S10_invoice.png": {
+    "document_type": "commercial_invoice",
+    "shipment": "S10",
+    "fields": {
+      "invoice_number": "MF-10250",
+      "shipper_name": "Coral Ceramics Industries",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-23",
+      "total_quantity": 250,
+      "total_weight_kg": 2210.0
+    }
+  },
+  "S10_packing.png": {
+    "document_type": "packing_list",
+    "shipment": "S10",
+    "fields": {
+      "invoice_number": "MF-10250",
+      "shipper_name": "Coral Ceramics Industries",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-23",
+      "total_quantity": 250,
+      "total_weight_kg": 2210.0
+    }
+  },
+  "S10_receipt.png": {
+    "document_type": "delivery_receipt",
+    "shipment": "S10",
+    "fields": {
+      "invoice_number": "MF-10250",
+      "shipper_name": "Coral Ceramics Industries",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-23",
+      "total_quantity": 250,
+      "total_weight_kg": null
+    }
+  },
+  "S11_invoice.jpg": {
+    "document_type": "commercial_invoice",
+    "shipment": "S11",
+    "fields": {
+      "invoice_number": "MF-11500",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-25",
+      "total_quantity": 500,
+      "total_weight_kg": 3980.0
+    }
+  },
+  "S11_packing.jpg": {
+    "document_type": "packing_list",
+    "shipment": "S11",
+    "fields": {
+      "invoice_number": "MF-11500",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-25",
+      "total_quantity": 50,
+      "total_weight_kg": 410.0
+    }
+  },
+  "S11_receipt.jpg": {
+    "document_type": "delivery_receipt",
+    "shipment": "S11",
+    "fields": {
+      "invoice_number": "MF-11500",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-25",
+      "total_quantity": 50,
+      "total_weight_kg": null
+    }
+  },
+  "S12_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "S12",
+    "fields": {
+      "invoice_number": "MF-12120",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-27",
+      "total_quantity": 1200,
+      "total_weight_kg": 9100.0
+    }
+  },
+  "S12_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "S12",
+    "fields": {
+      "invoice_number": "MF-12120",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-27",
+      "total_quantity": 1200,
+      "total_weight_kg": 9100.0
+    }
+  },
+  "S12_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "S12",
+    "fields": {
+      "invoice_number": "MF-12120",
+      "shipper_name": "Bluefin Textiles Pvt Ltd",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-02-27",
+      "total_quantity": 1200,
+      "total_weight_kg": null
+    }
+  },
+  "S13_invoice.png": {
+    "document_type": "commercial_invoice",
+    "shipment": "S13",
+    "fields": {
+      "invoice_number": "MF-13096",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-02",
+      "total_quantity": 96,
+      "total_weight_kg": 288.0
+    }
+  },
+  "S13_packing.png": {
+    "document_type": "packing_list",
+    "shipment": "S13",
+    "fields": {
+      "invoice_number": "MF-13096",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-02",
+      "total_quantity": 96,
+      "total_weight_kg": 288.0
+    }
+  },
+  "S13_receipt.png": {
+    "document_type": "delivery_receipt",
+    "shipment": "S13",
+    "fields": {
+      "invoice_number": "MF-13096",
+      "shipper_name": "Saffron Agro Traders",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-02",
+      "total_quantity": 96,
+      "total_weight_kg": null
+    }
+  },
+  "S14_receipt_faint.png": {
+    "document_type": "delivery_receipt",
+    "shipment": "S14",
+    "fields": {
+      "invoice_number": "MF-10040",
+      "shipper_name": "Kestrel Exports",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-01-12",
+      "total_quantity": 40,
+      "total_weight_kg": null
+    },
+    "expect_error": true
+  }
+}
