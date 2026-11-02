@@ -29,3 +29,26 @@ jobs:
           python -m spacy download en_core_web_lg
       - name: Run tests
         run: pytest -q
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create test settings
+        run: |
+          cp .env.example .env
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-value/' .env
+          sed -i 's/^LLM_PROVIDER=.*/LLM_PROVIDER=mock/' .env
+      - name: Start the stack and wait for health checks
+        run: docker compose up --build --detach --wait --wait-timeout 300
+      - name: Check an extract request end to end
+        run: |
+          curl --fail --silent --show-error -F file=@samples/S02_invoice.pdf -F file2=@samples/S02_packing.pdf http://localhost:8000/v1/extract | grep -q '"status":"Match"'
+          curl --fail --silent --show-error http://localhost:8501/_stcore/health
+      - name: Show service state on failure
+        if: failure()
+        run: docker compose ps --all
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
