@@ -4,8 +4,8 @@ from __future__ import annotations
 from email import policy
 from email.parser import BytesParser
 
-from . import config
-from .errors import PipelineError
+from ..core import config
+from ..core.errors import PipelineError
 from .upload import sniff_kind
 
 

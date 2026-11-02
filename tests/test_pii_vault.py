@@ -1,6 +1,6 @@
 import pytest
 
-from app.pii import PlaceholderVault, Span, apply_mask, resolve_overlaps
+from app.pipeline.pii import PlaceholderVault, Span, apply_mask, resolve_overlaps
 
 
 def test_same_person_two_spellings_one_token():

@@ -8,10 +8,12 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from . import config, eml, pipeline, pii
-from .errors import CLIENT_MESSAGE, PipelineError
-from .schemas import ExtractResponse
-from .telemetry import LAST_TRACE, METRICS, instrument_fastapi
+from .core import config
+from .ingestion import eml
+from .pipeline import pii, runner as pipeline
+from .core.errors import CLIENT_MESSAGE, PipelineError
+from .domains.meridian.schemas import ExtractResponse
+from .core.telemetry import LAST_TRACE, METRICS, instrument_fastapi
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 

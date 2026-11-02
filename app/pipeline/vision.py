@@ -9,7 +9,7 @@ import re
 
 from PIL import Image, ImageDraw
 
-from .errors import PipelineError
+from ..core.errors import PipelineError
 from .ocr import OCRResult
 from .pii import Span
 

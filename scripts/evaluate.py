@@ -39,8 +39,8 @@ def same(field: str, got, want) -> bool:
 def make_caller(args):
     if args.in_process:
         sys.path.insert(0, str(ROOT))
-        from app import pipeline
-        from app.errors import PipelineError
+        from app.pipeline import runner as pipeline
+        from app.core.errors import PipelineError
 
         def call(paths):
             try:

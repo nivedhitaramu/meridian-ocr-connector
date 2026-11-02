@@ -11,20 +11,10 @@ import httpx
 from PIL import Image
 from pydantic import ValidationError
 
-from . import config
-from .errors import PipelineError
-from .schemas import LLMExtraction
-
-SYSTEM_PROMPT = """You classify one document and fill a JSON object.
-Allowed document_type values: Commercial invoice, Packing list, Delivery receipt.
-Fields: invoice_number, shipper_name, receiver_name, shipment_date, total_quantity, total_weight_kg.
-shipper_name and receiver_name are company names, never a person.
-total_weight_kg is the printed total weight number; put its unit (kg or lb) in weight_unit.
-Also return quantity_totals: every total quantity printed, as {"value", "unit"}.
-The text uses placeholders such as <PERSON_1>.
-Copy placeholders unchanged. Do not guess the hidden value.
-If a field is not on the page, use null.
-Return only JSON: {"document_type", "fields": {...}, "quantity_totals": [...], "weight_unit"}."""
+from ..core import config
+from ..core.errors import PipelineError
+from ..domains.meridian.prompt import SYSTEM_PROMPT
+from ..domains.meridian.schemas import LLMExtraction
 
 
 @dataclass

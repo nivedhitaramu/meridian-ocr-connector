@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import uuid
 
-from . import config, llm, ocr, pii, rules, upload, vision
-from .errors import PipelineError
-from .schemas import DocumentResult, ExtractResponse, PIIInfo, PipelineInfo
-from .telemetry import LAST_TRACE, METRICS, RequestTrace
+from . import llm, ocr, pii, vision
+from ..core import config
+from ..domains.meridian import rules
+from ..ingestion import upload
+from ..core.errors import PipelineError
+from ..domains.meridian.schemas import DocumentResult, ExtractResponse, PIIInfo, PipelineInfo
+from ..core.telemetry import LAST_TRACE, METRICS, RequestTrace
 
 
 def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: RequestTrace):
