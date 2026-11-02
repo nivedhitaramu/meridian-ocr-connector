@@ -1,164 +1,249 @@
-# Meridian Freight — Shipping Document Reader (Team Delta)
+# Meridian Intelligence
 
-Reads a **commercial invoice**, a **packing list** or a **delivery receipt**, fills six fields, and answers
-the receiving clerk's one question: **does the invoice quantity match the packing list?**
+**Privacy-first document intelligence, starting with warehouse receiving.**
 
-Fictional company, synthetic documents only. Personal data is masked locally **before** any model call and
-never appears in logs or traces.
+Receiving clerks at Meridian Freight compare quantities on shipping paperwork by eye. If they miss a mismatch, the wrong cartons get put away after the truck has left. This app reads the documents and answers one question: **does the invoice quantity match the packing list?**
 
+Personal data is masked on our own machine before any model call, and code makes the final decision, not the model.
+
+> Team Delta, Build Fast with AI OCR Connector project. Meridian Freight is fictional, and every document here is synthetic.
+
+| | |
+|---|---|
+| **Live demo** | Not deployed yet |
+| **Accuracy** | Not measured with the real model yet ([see Evaluation](#evaluation)) |
+| **Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Upload"] --> B["OCR (local)"]
+    B --> C["Mask personal data (local)"]
+    C -->|"masked text only"| D["LLM extraction"]
+    C -.->|"poor scan: redacted image or manual review"| D
+    D --> E["Validate and normalize"]
+    E --> F["Rule engine"]
+    F --> G["Status, fields and trace"]
 ```
- upload ──► OCR (Tesseract, local) ──► Presidio mask (local) ──► LLM (one call, masked text) ──► rule ──► JSON + status
-   │             │  too little text / low confidence                                                │
-   │             └──► redact word boxes + contact lines + receipt signature band ──► vision model    │
-   │                  (no boxes found → "manual review" error, raw scan never sent)                   │
-   └── random file id, bytes checked, deleted in `finally`             spans: ocr · pii · llm · rule ┘
+
+| Step | What happens |
+|---|---|
+| **Upload** | Accepts PDF, PNG or JPEG up to 10 MB. Checks file bytes, not the extension, and stores under a random ID. |
+| **Read** | Tesseract runs locally. Under 40 letters or digits, or confidence under 60, takes the fallback path. |
+| **Mask** | Presidio and custom recognizers replace personal data with placeholders such as `<PERSON_1>`. |
+| **Extract** | One model call picks the document type and fills six fields. |
+| **Check** | Code compares quantities and returns the status. |
+
+## Architecture
+
+The design is a modular monolith with background workers planned. The API, the pipeline and the Meridian rules are separate layers, so new document workflows can reuse the platform.
+
+| Layer | Today | Planned |
+|---|---|---|
+| Experience | Streamlit page and trace panel | Next.js web app and admin console |
+| Edge and security | CORS limit, file checks | HTTPS, auth, roles, rate limiting |
+| Control plane | Stateless FastAPI endpoints | Tenants, shipments, jobs, review, audit |
+| Data and messaging | Temporary files only | PostgreSQL, Redis, queue, object storage |
+| Document intelligence | All stages, in the API process | The same stages in separate workers |
+| Observability | Spans, safe logs, counters | Collector and dashboards |
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has all six diagrams, each labelled by status.
+
+```text
+app/
+  main.py            HTTP routes
+  core/              Settings, errors, telemetry
+  ingestion/         Upload checks, storage, .eml attachments
+  pipeline/          OCR, PII masking, vision fallback, LLM, runner
+  domains/meridian/  Schemas, prompt, business rules
+ui/                  Streamlit page
+scripts/             Sample generation and evaluation
+samples/             Synthetic documents and test sheets
+tests/               Automated tests
+docs/                Architecture
 ```
 
 ## Quick start
 
-```bash
-# 1. System packages
-#    macOS:   brew install tesseract poppler
-#    Ubuntu:  sudo apt install tesseract-ocr poppler-utils
-#    Windows: install Tesseract (UB Mannheim build) + poppler, add both to PATH
+You need Python 3.11, [Tesseract](https://github.com/tesseract-ocr/tesseract) and [Poppler](https://poppler.freedesktop.org/) on your PATH.
 
-# 2. Python 3.11+
-python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+```bash
+python -m venv .venv
+source .venv/bin/activate              # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m spacy download en_core_web_lg
-
-# 3. Config — the API key comes from the environment, never from code
-cp .env.example .env          # then put your key in LLM_API_KEY
-
-# 4. Synthetic samples (40 documents, test sheet, .eml packets)
-python scripts/make_samples.py && python scripts/make_eml.py
-
-# 5. Run
-uvicorn app.main:app --reload --port 8000              # API  → http://localhost:8000/docs
-streamlit run ui/streamlit_app.py                      # page → http://localhost:8501
-
-# 6. Test + score
-pytest -q
-python scripts/evaluate.py                             # needs the API running
+cp .env.example .env                   # Windows: copy .env.example .env
 ```
 
-No key yet? `LLM_PROVIDER=mock` runs a regex extractor tuned to the sample templates so you can build the UI
-and telemetry. It is a dev stand-in; report accuracy from the real model only.
+Add your key to `LLM_API_KEY` in `.env`. The key only ever comes from the environment.
+
+Run each of these in its own terminal:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+```bash
+streamlit run ui/streamlit_app.py
+```
+
+The API docs are at `http://localhost:8000/docs` and the page is at `http://localhost:8501`.
+
+**No key yet?** Set `LLM_PROVIDER=mock` to use a regex stand-in tuned to the samples. It's for development only, so don't demo it or report its accuracy.
 
 ## API
 
-`POST /v1/extract` — multipart, `file` (required) and `file2` (optional, for the pair check).
-`POST /v1/extract-eml` — multipart `file` = an `.eml`; every PDF/PNG/JPEG attachment is processed (stretch goal).
-`GET /v1/trace/last` — sanitized trace of the last request (demo panel). `GET /v1/metrics` — counters.
+`POST /v1/extract` takes a multipart upload: `file` is required, and `file2` is optional for the pair check.
+
+```bash
+curl -F "file=@samples/S02_invoice.pdf" -F "file2=@samples/S02_packing.pdf" http://localhost:8000/v1/extract
+```
+
+Example response shape:
 
 ```json
 {
-  "request_id": "…",
+  "request_id": "7c1e0a4e-3d2b-4f0a-9c11-2a9b0e6d4f18",
   "document_type": "commercial_invoice",
-  "fields": {"invoice_number": "MF-88421", "shipper_name": "Kestrel Exports",
-             "receiver_name": "Meridian Freight Warehouse", "shipment_date": "2026-02-02",
-             "total_quantity": 120, "total_weight_kg": 860.5},
-  "check": {"status": "Match", "reason": "Invoice quantity equals packing-list quantity (120 cartons)."},
-  "pii": {"masked_before_llm": true, "entity_counts": {"PERSON": 3, "IN_MOBILE": 1, "EMAIL_ADDRESS": 1}, "placeholder_count": 5},
-  "pipeline": {"ocr_engine": "tesseract", "used_vision_fallback": false, "model": "…", "prompt_version": "meridian-v1",
-               "timings_ms": {"ocr": 640, "pii": 38, "llm": 1102, "rule": 0}},
-  "documents": [ {"slot": 1, "document_type": "commercial_invoice", "fields": {…}, "quantity_unit": "carton", …},
-                 {"slot": 2, "document_type": "packing_list", …} ]
+  "fields": {
+    "invoice_number": "MF-88421",
+    "shipper_name": "Kestrel Exports",
+    "receiver_name": "Meridian Freight Warehouse",
+    "shipment_date": "2026-02-02",
+    "total_quantity": 120,
+    "total_weight_kg": 860.5
+  },
+  "check": {
+    "status": "Match",
+    "reason": "Invoice quantity equals packing-list quantity (120 cartons)."
+  },
+  "pii": {
+    "masked_before_llm": true,
+    "entity_counts": {"PERSON": 1, "IN_MOBILE": 1},
+    "placeholder_count": 2
+  },
+  "pipeline": {
+    "ocr_engine": "tesseract",
+    "used_vision_fallback": false,
+    "model": "model-name",
+    "prompt_version": "meridian-v1",
+    "timings_ms": {"ocr": 640, "pii": 38, "llm": 1102, "rule": 3}
+  },
+  "documents": []
 }
 ```
 
-Top-level `document_type`/`fields` follow the brief's contract (first file). `documents[]` holds one entry
-per file. Errors return `{"error": "Could not read this document."}`; the server log records only a class
-(`ocr_empty`, `schema_invalid`, `manual_review_required`, `upload_bad_type`, …).
+Top-level `document_type` and `fields` describe the first file. `documents` has one entry per file, so a pair shows both.
 
-## Decisions the brief asks us to document
-
-**Quantity unit.** `total_quantity` is the number printed on the total line, in the unit printed next to it
-(returned as `quantity_unit`: carton, piece, package, pallet, box …).
-
-**When a page prints two totals** (e.g. *Total Cartons: 50* and *Total Pieces: 1,200*): the field holds the
-**shipping-unit total (cartons/packages)**, because put-away is by carton. The check still compares like with
-like: if the other document's unit is among this page's totals, those two numbers are compared. So an invoice
-for 1,200 pieces against that packing list is a **Match**. We never multiply by a guessed pack size: 120 cartons
-vs 1,440 pieces with no shared unit is **Mismatch — units differ**.
-
-**Numbers.** `1,200` → 1200 (separators stripped). `120` and `120.0` match. Pounds are converted to kg in code
-(×0.45359237), not by the model. Weight is shown but never changes the status.
-
-**Statuses.** Match / Mismatch (different numbers, different units, or a total that could not be read) /
-Incomplete (invoice or packing list missing) / Not applicable (only delivery receipts).
-
-**Personal data in fields.** Shipper and receiver are company names. If the model can only find a person, the
-placeholder (e.g. `<PERSON_1>`) stays in the field rather than the real name — the schema does not grow.
-
-## Personal data & security checklist
-
-| Rule from the brief | Where |
+| Endpoint | Purpose |
 |---|---|
-| Presidio before any network call, plus Indian recognizers (mobile, Aadhaar-shaped, PAN, bank account, IFSC, policy, roll) | `app/pii.py` |
-| Labelled names (`Attn:`, `Contact:`, `Received by:`, `Driver:`) and signature lines | `LabeledFieldRecognizer` |
-| Company names kept in the prompt (spaCy often tags them PERSON) | `_COMPANY_WORDS` filter |
-| Stable tokens per request, case/space-normalized; same person on two docs = one token | `PlaceholderVault` |
-| Vault in memory only, cleared in `finally` | `pipeline.run` |
-| Receipt bottom band masked in the **text** path too (OCR misreads the scribble) | `vision.signature_band_spans` |
-| Vision fallback sends only redacted pages; no boxes → manual review | `vision.redact_pages`, `llm.extract_from_images` |
-| Upload: magic bytes, 10 MB cap, random name, deleted after the request | `app/upload.py` |
-| Telemetry uses an **allow-list** of keys, so text, prompts, values, vault and filenames cannot be logged | `app/telemetry.py` |
-| Generic client error; CORS limited to the Streamlit origin | `app/main.py` |
-| Key from env; `.env` git-ignored; `.env.example` committed empty | `.env.example` |
+| `POST /v1/extract` | One file or a pair |
+| `POST /v1/extract-eml` | Every PDF or image attachment in an `.eml` file (stretch goal) |
+| `GET /v1/trace/last` | Sanitized trace of the last request |
+| `GET /v1/metrics` | Counters |
+| `GET /healthz` | Health check |
 
-Before the demo, confirm your model provider's current API terms say prompts are not used for training.
+Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 
-![Vision fallback redaction](docs/redaction_example.png)
+## Business rules
+
+| Status | When |
+|---|---|
+| **Match** | Both documents are present and the quantities are equal |
+| **Mismatch** | Quantities differ, units differ, or a total can't be read |
+| **Incomplete** | The invoice or the packing list is missing |
+| **Not applicable** | Only delivery receipts were uploaded |
+
+**Quantity unit:** `total_quantity` is the number on the total line, in the unit printed beside it. That unit is returned separately as `quantity_unit`.
+
+**When a page prints two totals:** the field holds the shipping-unit total (cartons or packages), because put-away is by carton. The check still compares like with like, so an invoice for 1,200 pieces matches a packing list printing 50 cartons and 1,200 pieces. If no unit is shared, 120 cartons vs 1,440 pieces is a Mismatch. We never guess a pack size.
+
+**Numbers:**
+- `1,200` means 1200, and 120 equals 120.0.
+- Code converts pounds to kilograms (× 0.45359237), not the model.
+- Weight is displayed but never changes the status.
+
+**Person-only shipper or receiver:** the placeholder stays in the field. The real name is never shown, and the schema doesn't grow.
+
+## Privacy and security
+
+| Rule | Where |
+|---|---|
+| Presidio runs before any network call, with Indian mobile, Aadhaar-shaped, PAN, bank account, IFSC, policy and roll number recognizers | `app/pipeline/pii.py` |
+| Same person on two documents gets one placeholder; the map stays in memory and is cleared in `finally` | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
+| A receipt's bottom band is masked in the text path too | `app/pipeline/vision.py` |
+| Only redacted images can go to a vision model; otherwise the result is manual review | `app/pipeline/vision.py`, `app/pipeline/llm.py` |
+| File bytes checked, random names, deleted after the request | `app/ingestion/upload.py` |
+| Telemetry uses an allow-list of keys | `app/core/telemetry.py` |
+| Clients get a generic error; CORS is limited to our page | `app/main.py` |
+| API key from the environment; `.env` is git-ignored | `.env.example` |
+
+**Known gaps we're fixing:**
+- The company-name filter can keep a surname such as "Mills" unmasked.
+- The signature band depends on OCR recognizing a poor scan as a receipt.
+- Model output isn't yet checked for names Presidio missed.
+
+Hosted vision stays off unless `VISION_MODEL` is set. Before using a hosted provider, confirm its terms say prompts aren't used for training.
+
+![A document with personal data painted out for the vision fallback](docs/redaction_example.png)
 
 ## Telemetry
 
-OpenTelemetry spans `ocr`, `pii`, `llm`, `rule` (console exporter; set `OTEL_EXPORTER_OTLP_ENDPOINT` for Jaeger),
-mirrored as one JSON object per line in `logs/telemetry.jsonl`:
+Each request creates OpenTelemetry spans named `ocr`, `pii`, `llm` and `rule`. They're mirrored as one JSON object per line in `logs/telemetry.jsonl`:
 
 ```json
-{"ts":"2026-11-02T13:20:53+00:00","level":"info","request_id":"e32e3588-…","stage":"pii","duration_ms":38,
- "slot":1,"entity_counts":{"PERSON":2,"IN_MOBILE":1,"EMAIL_ADDRESS":1},"placeholder_count":4}
+{"ts":"2026-10-30T12:04:11+00:00","level":"info","request_id":"7c1e0a4e-3d2b-4f0a-9c11-2a9b0e6d4f18","stage":"pii","duration_ms":38,"slot":1,"entity_counts":{"PERSON":2,"IN_MOBILE":1},"placeholder_count":3}
 ```
 
-Counters: requests by outcome, stage latency p50/p95, fallback rate, entities by type, checks by status.
+The page shows the last request's four stages, durations, status and entity counts. OCR text, prompts, completions, field values, the placeholder map and filenames are never recorded.
 
-Verify nothing leaked: `grep -E -i "@|[0-9]{10}|priya|raman" logs/telemetry.jsonl` should print nothing.
+## Evaluation
 
-## Test sheet & accuracy
+| Metric | Result with the real model |
+|---|---|
+| Field match after normalization | Not measured yet |
+| Document-type accuracy | Not measured yet |
+| Rule accuracy | Not measured yet |
 
-`samples/test_sheet.csv` — 20 documents with correct values (8 invoice/packing pairs, 3 receipts, 1 lone invoice).
-`samples/test_cases.csv` — 12 rule cases. `scripts/evaluate.py` writes `results_documents.csv` (extracted vs
-correct, per field) and `results_cases.csv`, and prints the three numbers the rubric asks for.
+**Field match normalization:**
+- Text is compared without case and with collapsed spaces.
+- Dates are compared in ISO format.
+- Quantities are compared as numbers.
+- Weight must be within 0.5 kg.
 
-Field-match normalization: strings case-insensitive with collapsed spaces; dates as ISO; quantities as numbers;
-weight within ±0.5 kg.
+**Test data:** 40 synthetic documents, a 20-document test sheet (`samples/test_sheet.csv`) with 8 pairs, and 12 rule cases (`samples/test_cases.csv`). They cover:
+- matches at 40, 120 and 1,200
+- 120 vs 118
+- cartons vs pieces
+- two totals on one page
+- weight in pounds
+- scanned images
+- signed receipts
+- one faint scan meant for manual review
 
-| Metric | Real model | (mock, sanity only) |
-|---|---|---|
-| Field match | _fill in_ | 100% |
-| Document type | _fill in_ | 100% |
-| Rule | _fill in_ | 100% |
+With the API running:
 
-Edge cases in the samples: matches at 40 / 120 / 1,200; 120 vs 118; cartons vs pieces; a packing list with two
-totals; weight in lb; equal quantity with different weights; PNG and JPEG "scans"; signed receipts; one faint scan
-that must go to manual review.
-
-## Project layout
-
+```bash
+python scripts/evaluate.py
 ```
-app/  main.py (FastAPI) · pipeline.py · upload.py · ocr.py · pii.py · llm.py · vision.py · rules.py
-      schemas.py · telemetry.py · eml.py · mock_llm.py · config.py · errors.py
-ui/streamlit_app.py      clerk page + trace panel
-scripts/                 make_samples.py · make_eml.py · evaluate.py
-samples/                 synthetic PDFs/PNGs/JPEGs, ground_truth.json, test sheet, .eml packets
-tests/                   rules, vault, upload, presidio
+
+```bash
+pytest -q
 ```
 
 ## Demo script
 
-1. Upload `S02_invoice.pdf` + `S02_packing.pdf` → **Match** (120 vs 120).
-2. Upload `S04_invoice.pdf` + `S04_packing.pdf` → **Mismatch** (120 vs 118).
-3. Upload `S02_receipt.pdf` alone → **Not applicable**; open the trace — `SIGNATURE` in entity counts, no text.
-4. Show the trace panel: four stage timings, Match, entity counts; no phone, no email.
-5. Stretch: upload `packet_S02_match.eml` → three documents, one Match.
+1. Upload `S02_invoice.pdf` and `S02_packing.pdf`: **Match** (120 vs 120).
+2. Upload `S04_invoice.pdf` and `S04_packing.pdf`: **Mismatch** (120 vs 118).
+3. Upload `S02_receipt.pdf` alone: **Not applicable**, with `SIGNATURE` in the entity counts.
+4. Open the trace: durations and a Match label, with no phone number or email.
+5. Stretch: upload `packet_S02_match.eml`: three documents and one Match.
+
+## Roadmap
+
+1. **Fellowship release:** real accuracy numbers, privacy fixes, live demo.
+2. **Platform:** PostgreSQL, authentication, tenants, roles, background workers, Next.js.
+3. **Workflow automation:** email ingestion, document grouping, exception management.
+4. **Integrations:** ERP, warehouse and transport systems, webhooks.
+5. **General platform:** configurable schemas and rules for other industries.

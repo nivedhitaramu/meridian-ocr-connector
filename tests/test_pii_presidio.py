@@ -2,11 +2,11 @@ import pytest
 
 pytest.importorskip("presidio_analyzer")
 
-from app.pii import PlaceholderVault  # noqa: E402
+from app.pipeline.pii import PlaceholderVault  # noqa: E402
 
 
 def test_presidio_masks_contacts_keeps_companies():
-    from app.pii import mask
+    from app.pipeline.pii import mask
 
     text = ("COMMERCIAL INVOICE\nShipper: Kestrel Exports\nAttn: Priya Raman\n"
             "Phone: +91 98450 12345\nEmail: priya.raman@kestrel-exports.example\n"

@@ -7,8 +7,8 @@ from pathlib import Path
 import pytesseract
 from PIL import Image, ImageOps
 
-from . import config
-from .errors import PipelineError
+from ..core import config
+from ..core.errors import PipelineError
 
 
 @dataclass

@@ -10,7 +10,7 @@ from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 
-from . import config
+from ..core import config
 
 # Entities we mask. DATE_TIME is deliberately absent: the shipment date is a field.
 MASKED_ENTITIES = [

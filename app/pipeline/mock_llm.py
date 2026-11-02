@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-from .schemas import LLMExtraction
+from ..domains.meridian.schemas import LLMExtraction
 
 _UNITS = r"cartons?|ctns?|pieces|pcs|pc|packages|pkgs?|pallets?|cases?|boxes|units"
 _NUM = r"\d[\d,]*(?:\.\d+)?"

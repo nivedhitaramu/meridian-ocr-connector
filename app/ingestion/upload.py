@@ -5,8 +5,8 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import config
-from .errors import PipelineError
+from ..core import config
+from ..core.errors import PipelineError
 
 _MAGIC = (
     (b"%PDF-", "pdf"),

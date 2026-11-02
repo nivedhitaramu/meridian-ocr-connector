@@ -1,5 +1,5 @@
-from app.rules import ParsedDoc, check, normalize_unit, post_process
-from app.schemas import LLMExtraction, MeridianFields, QuantityTotal
+from app.domains.meridian.rules import ParsedDoc, check, normalize_unit, post_process
+from app.domains.meridian.schemas import LLMExtraction, MeridianFields, QuantityTotal
 
 
 def doc(kind, qty=None, totals=()):

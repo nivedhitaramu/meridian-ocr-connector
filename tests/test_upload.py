@@ -1,7 +1,7 @@
 import pytest
 
-from app import upload
-from app.errors import PipelineError
+from app.ingestion import upload
+from app.core.errors import PipelineError
 
 
 def test_magic_bytes_not_extension():
