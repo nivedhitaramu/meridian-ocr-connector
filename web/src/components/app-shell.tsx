@@ -1,10 +1,13 @@
 import { UserButton } from "@clerk/nextjs";
-import { Building2 } from "lucide-react";
+import { Building2, Settings } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 // Only screens that exist. Later issues add theirs here.
-const NAVIGATION = [{ href: "/workspace", label: "Workspace", icon: Building2 }];
+const NAVIGATION = [
+  { href: "/workspace", label: "Workspace", icon: Building2 },
+  { href: "/workspace/settings", label: "Settings", icon: Settings },
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (

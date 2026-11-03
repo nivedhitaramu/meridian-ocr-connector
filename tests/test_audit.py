@@ -59,7 +59,7 @@ def test_role_change_is_recorded(client):  # noqa: F811
     org = start_org(http, ALICE)
     bob_id = add_member(http, make_session, org, BOB, "clerk")
     assert http.patch(f"/v1/organization/members/{bob_id}", json={"role": "supervisor"}, headers=ALICE).status_code == 200
-    newest = events(http, ALICE)[0]
+    newest = next(e for e in events(http, ALICE) if e["action"] != "organization.created")
     assert newest["action"] == "member.role_changed"
     assert newest["target"] == f"member:{bob_id}:supervisor"
 

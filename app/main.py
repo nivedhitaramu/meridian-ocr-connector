@@ -33,7 +33,7 @@ app = FastAPI(title="Meridian Freight OCR Connector", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,  # your own page only
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization", "X-Organization-Id"],
 )
 instrument_fastapi(app)

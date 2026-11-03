@@ -154,7 +154,10 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/organizations` | Start an organization and become its admin |
 | `GET /v1/organization` | The current organization |
 | `GET /v1/organization/members` | List members; supervisor or admin |
+| `PATCH /v1/organization` | Rename the organization; admin |
+| `POST /v1/organization/members` | Add someone who has already signed in; admin |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
+| `DELETE /v1/organization/members/{user_id}` | Remove a member; admin |
 | `GET /v1/shipments/{id}` | One shipment in the current organization |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
 
