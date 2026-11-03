@@ -38,6 +38,7 @@ async function request<T>(context: ApiContext, path: string, init: RequestInit =
     cache: "no-store",
   });
   if (!response.ok) throw new ApiError(response.status);
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -46,6 +47,38 @@ export const getMe = (context: ApiContext) => request<Me>(context, "/v1/me");
 export const getOrganization = (context: ApiContext) => request<Organization>(context, "/v1/organization");
 
 export const listMembers = (context: ApiContext) => request<Member[]>(context, "/v1/organization/members");
+
+export type AuditEvent = {
+  actor_id: string | null;
+  action: string;
+  target: string | null;
+  request_id: string | null;
+  created_at: string;
+};
+
+export const listAuditEvents = (context: ApiContext, limit = 50) =>
+  request<AuditEvent[]>(context, `/v1/audit-events?limit=${limit}`);
+
+export const renameOrganization = (context: ApiContext, name: string) =>
+  request<{ id: string; name: string }>(context, "/v1/organization", {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+
+export const addMember = (context: ApiContext, email: string, role: Role) =>
+  request<{ user_id: string; role: Role }>(context, "/v1/organization/members", {
+    method: "POST",
+    body: JSON.stringify({ email, role }),
+  });
+
+export const changeRole = (context: ApiContext, userId: string, role: Role) =>
+  request<{ user_id: string; role: Role }>(context, `/v1/organization/members/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+
+export const removeMember = (context: ApiContext, userId: string) =>
+  request<void>(context, `/v1/organization/members/${encodeURIComponent(userId)}`, { method: "DELETE" });
 
 export const createOrganization = (context: ApiContext, name: string) =>
   request<Pick<Organization, "id" | "name" | "role">>(context, "/v1/organizations", {

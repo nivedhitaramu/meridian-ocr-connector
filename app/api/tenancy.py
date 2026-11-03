@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import audit
@@ -25,6 +26,11 @@ class NewOrganization(BaseModel):
 
 class RoleChange(BaseModel):
     role: Literal["admin", "supervisor", "clerk"]
+
+
+class NewMember(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    role: Literal["admin", "supervisor", "clerk"] = "clerk"
 
 
 @router.post("/organizations", status_code=201)
@@ -49,6 +55,30 @@ def current_organization(member: Member = Depends(current_member), session: Sess
     return {"id": str(organization.id), "name": organization.name, "plan": organization.plan, "role": member.role}
 
 
+@router.patch("/organization")
+def rename_organization(request: Request, body: NewOrganization, member: Member = Depends(require_role("admin")),
+                        session: Session = Depends(get_db)):
+    organization = session.get(Organization, member.organization_id)
+    name = body.name.strip()
+    if organization.name != name:
+        organization.name = name
+        audit.record(session, member.organization_id, member.user_id, audit.ORGANIZATION_RENAMED,
+                     f"organization:{member.organization_id}", request_id_for(request))
+        session.commit()
+    return {"id": str(member.organization_id), "name": name}
+
+
+def _is_last_admin(session: Session, member: Member, target: OrganizationMember) -> bool:
+    if target.role != "admin":
+        return False
+    admins = session.scalar(select(func.count()).select_from(OrganizationMember).where(
+        OrganizationMember.organization_id == member.organization_id, OrganizationMember.role == "admin"))
+    return admins == 1
+
+
+_LAST_ADMIN = {"error": "An organization needs at least one admin."}
+
+
 @router.get("/organization/members")
 def list_members(member: Member = Depends(require_role("supervisor")), session: Session = Depends(get_db)):
     rows = session.execute(
@@ -64,17 +94,49 @@ def change_role(request: Request, user_id: uuid.UUID, body: RoleChange, member: 
     target = session.get(OrganizationMember, (member.organization_id, user_id))
     if target is None:
         raise NotFound
-    if target.role == "admin" and body.role != "admin":
-        admins = session.scalar(select(func.count()).select_from(OrganizationMember).where(
-            OrganizationMember.organization_id == member.organization_id, OrganizationMember.role == "admin"))
-        if admins == 1:
-            return JSONResponse(status_code=409, content={"error": "An organization needs at least one admin."})
+    if body.role != "admin" and _is_last_admin(session, member, target):
+        return JSONResponse(status_code=409, content=_LAST_ADMIN)
     if target.role != body.role:
         target.role = body.role
         audit.record(session, member.organization_id, member.user_id, audit.MEMBER_ROLE_CHANGED,
                      f"member:{user_id}:{body.role}", request_id_for(request))
         session.commit()
     return {"user_id": str(user_id), "role": body.role}
+
+
+@router.post("/organization/members", status_code=201)
+def add_member(request: Request, body: NewMember, member: Member = Depends(require_role("admin")),
+               session: Session = Depends(get_db)):
+    """Adds someone who has already signed in once. There's no email invitation yet."""
+    user = session.scalar(select(User).where(func.lower(User.email) == body.email.strip().lower()))
+    if user is None:
+        raise NotFound
+    user_id = user.id
+    if session.get(OrganizationMember, (member.organization_id, user_id)) is not None:
+        return JSONResponse(status_code=409, content={"error": "This person is already a member."})
+    session.add(OrganizationMember(organization_id=member.organization_id, user_id=user_id, role=body.role))
+    audit.record(session, member.organization_id, member.user_id, audit.MEMBER_ADDED,
+                 f"member:{user_id}:{body.role}", request_id_for(request))
+    session.commit()
+    return {"user_id": str(user_id), "role": body.role}
+
+
+@router.delete("/organization/members/{user_id}", status_code=204)
+def remove_member(request: Request, user_id: uuid.UUID, member: Member = Depends(require_role("admin")),
+                  session: Session = Depends(get_db)):
+    target = session.get(OrganizationMember, (member.organization_id, user_id))
+    if target is None:
+        raise NotFound
+    if _is_last_admin(session, member, target):
+        return JSONResponse(status_code=409, content=_LAST_ADMIN)
+    session.delete(target)
+    audit.record(session, member.organization_id, member.user_id, audit.MEMBER_REMOVED,
+                 f"member:{user_id}", request_id_for(request))
+    try:
+        session.commit()
+    except IntegrityError:  # their past reviews must stay attributable
+        session.rollback()
+        return JSONResponse(status_code=409, content={"error": "This person has recorded reviews and can't be removed."})
 
 
 @router.get("/audit-events")

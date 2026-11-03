@@ -13,6 +13,9 @@ from sqlalchemy.orm import Session
 from .models import AuditEvent
 
 ORGANIZATION_CREATED = "organization.created"
+ORGANIZATION_RENAMED = "organization.renamed"
+MEMBER_ADDED = "member.added"
+MEMBER_REMOVED = "member.removed"
 MEMBER_ROLE_CHANGED = "member.role_changed"
 SESSION_STARTED = "session.started"
 DOCUMENT_UPLOADED = "document.uploaded"  # for #20

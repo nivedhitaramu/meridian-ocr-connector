@@ -110,7 +110,9 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14), Clerk token verification (#15, sign-in screens pending), tenant isolation (#16), audit events (#22, upload and review events pending) and unseen test documents (#9). Issues #2-#45 hold the full plan.
 
-**In review:** #23 Next.js foundation on branch `web-foundation`. The workspace page hasn't been used with real Clerk sign-in.
+**In review, stacked in this order:** PR #53 (#23 Next.js foundation), PR #56 (#24 landing and sign-in screens) and the `web-settings` PR (#30 settings). PR #55 is a small Streamlit table fix. None of the signed-in screens has run with a real Clerk application.
+
+**Needed from the user:** an LLM key for #5, then #11 and #12; a Clerk application to verify #15, #23, #24 and #30.
 
 **Waiting on other issues:** #22 upload and review events need #20 and #27, which should call `audit.record`.
 
@@ -136,6 +138,8 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 3. **Slow OCR:** about 3 seconds per document on this machine, so check the timeout and hosting size before deploying.
 4. **Rate limit is per process and per client address:** behind Streamlit, all users share one address, so the limit protects the LLM quota rather than separating users.
 5. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
+
+**Git safety:** stage files by name. On a branch without `web/`, its own `.gitignore` is gone, so `git add -A` can pick up `node_modules` until PR #55 merges.
 
 **Next step:** the blockers are real accuracy with an LLM key (#5), the live demo (#6), and #20 and #21, which most remaining ALN-web issues need.
 

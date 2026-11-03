@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ApiError, createOrganization, getMe, getOrganization } from "./api";
+import { addMember, ApiError, changeRole, createOrganization, getMe, getOrganization, removeMember } from "./api";
 
 function respond(status: number, body: unknown = {}) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status }));
@@ -50,6 +50,24 @@ describe("api client", () => {
       name: ApiError.name,
       status,
     });
+  });
+
+  it("adds a member by email and role", async () => {
+    const mock = respond(201, { user_id: "1", role: "clerk" });
+    await addMember(context(mock), "a@example.com", "clerk");
+    expect(sent(mock).init.method).toBe("POST");
+    expect(JSON.parse(sent(mock).init.body as string)).toEqual({ email: "a@example.com", role: "clerk" });
+  });
+
+  it("escapes IDs placed in a path", async () => {
+    const mock = respond(200);
+    await changeRole(context(mock), "a/../b", "admin");
+    expect(sent(mock).url).toBe("http://api.test/v1/organization/members/a%2F..%2Fb");
+  });
+
+  it("handles an empty 204 from a removal", async () => {
+    const mock = vi.fn(async () => new Response(null, { status: 204 }));
+    await expect(removeMember(context(mock), "1")).resolves.toBeUndefined();
   });
 
   it("never caches, because responses depend on who is signed in", async () => {
