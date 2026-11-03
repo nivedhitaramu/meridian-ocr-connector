@@ -9,3 +9,5 @@ venv/
 samples/results_*.csv
 samples/_tmp_*
 .DS_Store
+web/node_modules/
+web/.next/

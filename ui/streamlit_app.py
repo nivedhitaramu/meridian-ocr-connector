@@ -13,6 +13,11 @@ STATUS_STYLE = {
 LABELS = {"commercial_invoice": "Commercial invoice", "packing_list": "Packing list",
           "delivery_receipt": "Delivery receipt", "unknown": "Unknown"}
 
+
+def _cell(value) -> str:
+    return "Not found" if value is None else str(value)
+
+
 st.set_page_config(page_title="Meridian Freight · Receiving check", page_icon="📦", layout="wide")
 st.title("📦 Meridian Freight — receiving check")
 st.caption("Upload the commercial invoice and the packing list. A delivery receipt on its own is accepted too. "
@@ -55,9 +60,10 @@ if result:
                 qty = f["total_quantity"]
                 st.table({
                     "Field": ["Invoice / ref", "Shipper", "Receiver", "Date", "Total quantity", "Total weight (kg)"],
-                    "Value": [f["invoice_number"], f["shipper_name"], f["receiver_name"], f["shipment_date"],
-                              f"{qty:,} {doc['quantity_unit'] or ''}".strip() if qty is not None else None,
-                              f["total_weight_kg"]],
+                    "Value": [_cell(f["invoice_number"]), _cell(f["shipper_name"]), _cell(f["receiver_name"]),
+                              _cell(f["shipment_date"]),
+                              f"{qty:,} {doc['quantity_unit'] or ''}".strip() if qty is not None else "Not found",
+                              _cell(f["total_weight_kg"])],
                 })
                 if doc["used_vision_fallback"]:
                     st.info("Read via redacted-image fallback.")
