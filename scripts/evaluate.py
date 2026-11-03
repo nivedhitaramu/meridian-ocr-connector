@@ -3,9 +3,13 @@
     python scripts/evaluate.py                         # calls the running API at http://localhost:8000
     python scripts/evaluate.py --api http://host:8000
     python scripts/evaluate.py --in-process            # no server; imports the pipeline directly
+    python scripts/evaluate.py --sheet samples/holdout/holdout_sheet.csv --cases samples/holdout/holdout_cases.csv
+                                                       # unseen holdout set from scripts/make_holdout.py
 
 Writes samples/results_documents.csv (extracted vs expected, per field) and
-samples/results_cases.csv (status vs expected). Normalization used for field match:
+samples/results_cases.csv (status vs expected). A non-default sheet adds its name,
+e.g. samples/results_documents_holdout_sheet.csv. File names in a sheet are read
+from the sheet's own folder. Normalization used for field match:
 strings compared case-insensitively with collapsed spaces; numbers compared as floats
 with weight tolerance 0.5 kg; dates compared as ISO strings.
 """
@@ -64,14 +68,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--api", default="http://localhost:8000")
     ap.add_argument("--in-process", action="store_true")
+    ap.add_argument("--sheet", type=Path, default=SAMPLES / "test_sheet.csv", help="documents CSV")
+    ap.add_argument("--cases", type=Path, default=SAMPLES / "test_cases.csv", help="rule cases CSV")
     args = ap.parse_args()
     call = make_caller(args)
+    sheet_dir, cases_dir = args.sheet.resolve().parent, args.cases.resolve().parent
+    suffix = "" if args.sheet.resolve() == (SAMPLES / "test_sheet.csv").resolve() else f"_{args.sheet.stem}"
 
     # ---- documents: type + fields
     rows, f_ok, f_total, t_ok, t_total = [], 0, 0, 0, 0
-    with open(SAMPLES / "test_sheet.csv") as fh:
+    with open(args.sheet) as fh:
         for exp in csv.DictReader(fh):
-            res = call([SAMPLES / exp["file"]])
+            res = call([sheet_dir / exp["file"]])
             if "error" in res:
                 got_type, got = "error", {}
             else:
@@ -87,23 +95,23 @@ def main() -> None:
             rows.append(row)
             print(f"{exp['file']:<24} type={'OK ' if got_type == exp['expected_document_type'] else 'BAD'} "
                   f"fields={sum(row[f'{f}_ok'] for f in FIELDS)}/6")
-    with open(SAMPLES / "results_documents.csv", "w", newline="") as fh:
+    with open(SAMPLES / f"results_documents{suffix}.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
         w.writeheader()
         w.writerows(rows)
 
     # ---- rule cases
     c_rows, r_ok = [], 0
-    with open(SAMPLES / "test_cases.csv") as fh:
+    with open(args.cases) as fh:
         cases = list(csv.DictReader(fh))
     for c in cases:
-        paths = [SAMPLES / c["file"]] + ([SAMPLES / c["file2"]] if c["file2"] else [])
+        paths = [cases_dir / c["file"]] + ([cases_dir / c["file2"]] if c["file2"] else [])
         res = call(paths)
         got = res.get("check", {}).get("status", "error")
         r_ok += got == c["expected_status"]
         c_rows.append({**c, "got_status": got, "reason": res.get("check", {}).get("reason", ""), "ok": got == c["expected_status"]})
         print(f"{c['case']:<18} expected={c['expected_status']:<15} got={got}")
-    with open(SAMPLES / "results_cases.csv", "w", newline="") as fh:
+    with open(SAMPLES / f"results_cases{suffix}.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(c_rows[0].keys()))
         w.writeheader()
         w.writerows(c_rows)

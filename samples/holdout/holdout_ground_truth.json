@@ -1,0 +1,170 @@
+{
+  "H01_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "H01",
+    "fields": {
+      "invoice_number": "INV/2026/0417",
+      "shipper_name": "Ashwood Mills",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-03",
+      "total_quantity": 64,
+      "total_weight_kg": 498.0
+    }
+  },
+  "H01_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "H01",
+    "fields": {
+      "invoice_number": "INV/2026/0417",
+      "shipper_name": "Ashwood Mills",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-03",
+      "total_quantity": 64,
+      "total_weight_kg": 498.0
+    }
+  },
+  "H02_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "H02",
+    "fields": {
+      "invoice_number": "HB-2026-118",
+      "shipper_name": "Halden & Brook",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-05",
+      "total_quantity": 250,
+      "total_weight_kg": 1312.5
+    }
+  },
+  "H02_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "H02",
+    "fields": {
+      "invoice_number": "HB-2026-118",
+      "shipper_name": "Halden & Brook",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-05",
+      "total_quantity": 205,
+      "total_weight_kg": 1077.0
+    }
+  },
+  "H03_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "H03",
+    "fields": {
+      "invoice_number": "VGS/EXP/2291",
+      "shipper_name": "Velora Global Sourcing LLP",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-07",
+      "total_quantity": 2400,
+      "total_weight_kg": 980.0
+    }
+  },
+  "H03_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "H03",
+    "fields": {
+      "invoice_number": "VGS/EXP/2291",
+      "shipper_name": "Velora Global Sourcing LLP",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-07",
+      "total_quantity": 2400,
+      "total_weight_kg": 980.0
+    }
+  },
+  "H04_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "H04",
+    "fields": {
+      "invoice_number": "TR-55031",
+      "shipper_name": "Tarang",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-10",
+      "total_quantity": 36,
+      "total_weight_kg": 6120.0
+    }
+  },
+  "H04_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "H04",
+    "fields": {
+      "invoice_number": "TR-55031",
+      "shipper_name": "Tarang",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-10",
+      "total_quantity": 36,
+      "total_weight_kg": 6120.0
+    }
+  },
+  "H05_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "H05",
+    "fields": {
+      "invoice_number": "INV/2026/0533",
+      "shipper_name": "Ashwood Mills",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-12",
+      "total_quantity": 150,
+      "total_weight_kg": 1199.75
+    }
+  },
+  "H05_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "H05",
+    "fields": {
+      "invoice_number": "INV/2026/0533",
+      "shipper_name": "Ashwood Mills",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-12",
+      "total_quantity": 150,
+      "total_weight_kg": 1199.75
+    }
+  },
+  "H06_invoice.pdf": {
+    "document_type": "commercial_invoice",
+    "shipment": "H06",
+    "fields": {
+      "invoice_number": "HB-2026-131",
+      "shipper_name": "Halden & Brook",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-16",
+      "total_quantity": 88,
+      "total_weight_kg": 702.0
+    }
+  },
+  "H06_packing.pdf": {
+    "document_type": "packing_list",
+    "shipment": "H06",
+    "fields": {
+      "invoice_number": "HB-2026-131",
+      "shipper_name": "Halden & Brook",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-16",
+      "total_quantity": 88,
+      "total_weight_kg": 702.0
+    }
+  },
+  "H01_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "H01",
+    "fields": {
+      "invoice_number": "INV/2026/0417",
+      "shipper_name": "Ashwood Mills",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-03",
+      "total_quantity": 64,
+      "total_weight_kg": null
+    }
+  },
+  "H02_receipt.pdf": {
+    "document_type": "delivery_receipt",
+    "shipment": "H02",
+    "fields": {
+      "invoice_number": "HB-2026-118",
+      "shipper_name": "Halden & Brook",
+      "receiver_name": "Meridian Freight Warehouse",
+      "shipment_date": "2026-03-05",
+      "total_quantity": 205,
+      "total_weight_kg": null
+    }
+  }
+}
