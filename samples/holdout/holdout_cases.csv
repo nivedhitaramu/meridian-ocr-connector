@@ -1,0 +1,9 @@
+case,file,file2,expected_status
+H01-pair,H01_invoice.pdf,H01_packing.pdf,Match
+H02-pair,H02_invoice.pdf,H02_packing.pdf,Mismatch
+H03-pair,H03_invoice.pdf,H03_packing.pdf,Match
+H04-pair,H04_invoice.pdf,H04_packing.pdf,Mismatch
+H05-pair,H05_invoice.pdf,H05_packing.pdf,Match
+H06-pair,H06_invoice.pdf,H06_packing.pdf,Match
+H01-receipt,H01_receipt.pdf,,Not applicable
+H03-invoice-only,H03_invoice.pdf,,Incomplete

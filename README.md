@@ -156,6 +156,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/organization/members` | List members; supervisor or admin |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
 | `GET /v1/shipments/{id}` | One shipment in the current organization |
+| `GET /v1/audit-events` | Newest audit events for the organization; admin |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 
@@ -250,6 +251,18 @@ The page shows the last request's four stages, durations, status and entity coun
 - scanned images
 - signed receipts
 - one faint scan meant for manual review
+
+**Holdout set (unseen documents):** the test sheet above is drawn from the same templates the prompt and masking were developed on, so it can overstate accuracy. `scripts/make_holdout.py` writes 14 documents to `samples/holdout/` that differ on purpose: a two-column header, new labels ("Exporter", "Ship To", "Total Packages", "Proof of Delivery"), new reference formats such as `INV/2026/0417`, and companies with no word like "Ltd" in their name (Ashwood Mills, Halden & Brook, Tarang). The 8 rule cases include digits swapped (250 vs 205) and pallets vs cartons. Run it with:
+
+```bash
+python scripts/evaluate.py --sheet samples/holdout/holdout_sheet.csv --cases samples/holdout/holdout_cases.csv
+```
+
+| Metric | Holdout result with the real model |
+|---|---|
+| Field match after normalization | Not measured yet |
+| Document-type accuracy | Not measured yet |
+| Rule accuracy | Not measured yet |
 
 With the API running:
 

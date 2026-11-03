@@ -108,10 +108,11 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Last updated:** 2026-11-02.
 
-**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14) and Clerk token verification (#15, sign-in screens pending). Issues #2-#45 hold the full plan.
+**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14), Clerk token verification (#15, sign-in screens pending), tenant isolation (#16), audit events (#22, upload and review events pending) and unseen test documents (#9). Issues #2-#45 hold the full plan.
 
-**In review:** #22 audit events (PR #52, CI passed), and #23 Next.js foundation on branch `web-foundation`. The workspace page hasn't been used with real Clerk sign-in.
+**In review:** #23 Next.js foundation on branch `web-foundation`. The workspace page hasn't been used with real Clerk sign-in.
 
+**Waiting on other issues:** #22 upload and review events need #20 and #27, which should call `audit.record`.
 
 **Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 
@@ -136,6 +137,6 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 4. **Rate limit is per process and per client address:** behind Streamlit, all users share one address, so the limit protects the LLM quota rather than separating users.
 5. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
 
-**Next step:** the blockers are real accuracy with an LLM key (#5), the database (#14) and the live demo (#6). Most remaining ALN-web issues depend on #14, #20 or #21.
+**Next step:** the blockers are real accuracy with an LLM key (#5), the live demo (#6), and #20 and #21, which most remaining ALN-web issues need.
 
 **Open questions for the team:** submission deadline, final LLM provider, live demo hosting, who owns what, and whether the Target layers should start before submission.

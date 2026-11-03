@@ -1,0 +1,15 @@
+file,expected_document_type,invoice_number,shipper_name,receiver_name,shipment_date,total_quantity,total_weight_kg
+H01_invoice.pdf,commercial_invoice,INV/2026/0417,Ashwood Mills,Meridian Freight Warehouse,2026-03-03,64,498.0
+H01_packing.pdf,packing_list,INV/2026/0417,Ashwood Mills,Meridian Freight Warehouse,2026-03-03,64,498.0
+H02_invoice.pdf,commercial_invoice,HB-2026-118,Halden & Brook,Meridian Freight Warehouse,2026-03-05,250,1312.5
+H02_packing.pdf,packing_list,HB-2026-118,Halden & Brook,Meridian Freight Warehouse,2026-03-05,205,1077.0
+H03_invoice.pdf,commercial_invoice,VGS/EXP/2291,Velora Global Sourcing LLP,Meridian Freight Warehouse,2026-03-07,2400,980.0
+H03_packing.pdf,packing_list,VGS/EXP/2291,Velora Global Sourcing LLP,Meridian Freight Warehouse,2026-03-07,2400,980.0
+H04_invoice.pdf,commercial_invoice,TR-55031,Tarang,Meridian Freight Warehouse,2026-03-10,36,6120.0
+H04_packing.pdf,packing_list,TR-55031,Tarang,Meridian Freight Warehouse,2026-03-10,36,6120.0
+H05_invoice.pdf,commercial_invoice,INV/2026/0533,Ashwood Mills,Meridian Freight Warehouse,2026-03-12,150,1199.75
+H05_packing.pdf,packing_list,INV/2026/0533,Ashwood Mills,Meridian Freight Warehouse,2026-03-12,150,1199.75
+H06_invoice.pdf,commercial_invoice,HB-2026-131,Halden & Brook,Meridian Freight Warehouse,2026-03-16,88,702.0
+H06_packing.pdf,packing_list,HB-2026-131,Halden & Brook,Meridian Freight Warehouse,2026-03-16,88,702.0
+H01_receipt.pdf,delivery_receipt,INV/2026/0417,Ashwood Mills,Meridian Freight Warehouse,2026-03-03,64,
+H02_receipt.pdf,delivery_receipt,HB-2026-118,Halden & Brook,Meridian Freight Warehouse,2026-03-05,205,
