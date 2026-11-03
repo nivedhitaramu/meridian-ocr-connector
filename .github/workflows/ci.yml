@@ -69,3 +69,27 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down --volumes
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    env:
+      # Placeholder values so the app builds. They can't sign anyone in.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZmljdGlvbmFsLmNsZXJrLmFjY291bnRzLmRldiQ=
+      CLERK_SECRET_KEY: sk_test_placeholder
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build

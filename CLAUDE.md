@@ -68,6 +68,7 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 | `app/domains/meridian/schemas.py` | Pydantic models and API contract |
 | `app/domains/meridian/prompt.py` | Extraction prompt |
 | `ui/streamlit_app.py` | Clerk page and trace panel |
+| `web/` | Next.js product UI; see `web/README.md` |
 | `docs/ARCHITECTURE.md` | Six architecture diagrams, labelled Built or Target |
 | `scripts/` | Sample generation, `.eml` packets, evaluation |
 | `samples/` | 40 synthetic documents, test sheets, `.eml` packets |
@@ -107,9 +108,11 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Last updated:** 2026-11-02.
 
-**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14), Clerk token verification (#15, sign-in screens pending) and tenant isolation (#16). Issues #2-#45 hold the full plan.
+**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14), Clerk token verification (#15, sign-in screens pending), tenant isolation (#16), audit events (#22, upload and review events pending) and unseen test documents (#9). Issues #2-#45 hold the full plan.
 
-**In progress:** #22 audit events on branch `audit-events`. Upload and review events wait for #20 and #27, which should call `audit.record`.
+**In review:** #23 Next.js foundation on branch `web-foundation`. The workspace page hasn't been used with real Clerk sign-in.
+
+**Waiting on other issues:** #22 upload and review events need #20 and #27, which should call `audit.record`.
 
 **Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 

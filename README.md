@@ -41,7 +41,7 @@ The design is a modular monolith with background workers planned. The API, the p
 
 | Layer | Today | Planned |
 |---|---|---|
-| Experience | Streamlit page and trace panel | Next.js web app and admin console |
+| Experience | Streamlit page and trace panel; Next.js foundation | The rest of the Next.js product and admin console |
 | Edge and security | CORS limit, file checks | HTTPS, auth, roles, rate limiting |
 | Control plane | Stateless FastAPI endpoints | Tenants, shipments, jobs, review, audit |
 | Data and messaging | Temporary files only | PostgreSQL, Redis, queue, object storage |
@@ -58,6 +58,7 @@ app/
   pipeline/          OCR, PII masking, vision fallback, LLM, runner
   domains/meridian/  Schemas, prompt, business rules
 ui/                  Streamlit page
+web/                 Next.js product UI, see web/README.md
 scripts/             Sample generation and evaluation
 samples/             Synthetic documents and test sheets
 tests/               Automated tests
