@@ -128,6 +128,43 @@ def test_multi_line_entity_keeps_the_label_on_the_next_line(monkeypatch):
     assert masked == "Plot 7, <PERSON_1>\nConsignee: Meridian Freight Warehouse\n"
 
 
+def _fake_analyzer(monkeypatch, text, word, entity):
+    class Analyzer:
+        def analyze(self, **kwargs):
+            class Result:
+                entity_type, score = entity, 0.85
+                start = text.index(word)
+                end = start + len(word)
+            return [Result()]
+
+    monkeypatch.setattr(pii, "_analyzer", lambda: Analyzer())
+
+
+def test_place_after_a_party_label_is_kept_as_the_company(monkeypatch):
+    text = "Exporter: Tarang Ship To: Meridian Freight Warehouse\n"
+    _fake_analyzer(monkeypatch, text, "Tarang", "LOCATION")
+    assert pii.detect(text) == []
+
+
+def test_person_after_a_party_label_is_still_masked(monkeypatch):
+    text = "Exporter: Asha Rao\n"
+    _fake_analyzer(monkeypatch, text, "Asha Rao", "PERSON")
+    assert [s.entity_type for s in pii.detect(text)] == ["PERSON"]
+
+
+def test_place_elsewhere_is_still_masked(monkeypatch):
+    text = "Attention: Chennai\n"
+    _fake_analyzer(monkeypatch, text, "Chennai", "LOCATION")
+    assert [s.entity_type for s in pii.detect(text)] == ["LOCATION"]
+
+
+def test_scrub_keeps_a_company_that_reads_as_a_place(monkeypatch):
+    monkeypatch.setattr(pii, "detect", lambda text: [Span(0, len(text), "LOCATION", 0.85)])
+    fields = MeridianFields(shipper_name="Tarang")
+    assert pii.scrub_fields(fields, PlaceholderVault()) == 0
+    assert fields.shipper_name == "Tarang"
+
+
 def test_scrub_catches_a_name_the_model_returned():
     pytest.importorskip("presidio_analyzer")
     fields = MeridianFields(shipper_name="Priya Raman", receiver_name="Meridian Freight Warehouse")
