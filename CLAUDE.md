@@ -114,7 +114,7 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Needed from the user:** an LLM key for #5, then #11 and #12; a Clerk application to verify #15, #23, #24 and #30.
 
-**Waiting on other issues:** #22 upload and review events need #20 and #27, which should call `audit.record`.
+**Waiting on other issues:** #22 upload and review events need #20 and #27, which should call `audit.record`. Upload events are now recorded.
 
 **Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
 

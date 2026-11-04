@@ -59,6 +59,8 @@ jobs:
         run: docker compose up --build --detach --wait --wait-timeout 300
       - name: Run database migrations in the stack
         run: docker compose exec -T api alembic upgrade head
+      - name: Check the worker responds
+        run: docker compose exec -T worker celery -A app.worker.celery_app inspect ping --timeout 20
       - name: Check an extract request end to end
         run: |
           curl --fail --silent --show-error -F file=@samples/S02_invoice.pdf -F file2=@samples/S02_packing.pdf http://localhost:8000/v1/extract | grep -q '"status":"Match"'

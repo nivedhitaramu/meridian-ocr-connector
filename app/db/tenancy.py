@@ -12,8 +12,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 
 
-def set_scope(session: Session, user_id: uuid.UUID, organization_id: uuid.UUID | None = None) -> None:
-    session.info["scope"] = (str(user_id), str(organization_id) if organization_id else "")
+def set_scope(session: Session, user_id: uuid.UUID | None, organization_id: uuid.UUID | None = None) -> None:
+    """A background job has no signed-in user, so it passes None and acts within one organization."""
+    session.info["scope"] = (str(user_id) if user_id else "", str(organization_id) if organization_id else "")
     _apply(session, session.connection())  # also covers a transaction that's already open
 
 

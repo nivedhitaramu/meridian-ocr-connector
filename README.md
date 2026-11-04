@@ -91,7 +91,7 @@ streamlit run ui/streamlit_app.py
 
 The API docs are at `http://localhost:8000/docs` and the page is at `http://localhost:8501`.
 
-**With Docker instead:** set `POSTGRES_PASSWORD` in `.env`, then run the command below. It starts the API, the page, PostgreSQL and Redis. The app doesn't read PostgreSQL or Redis yet, but you can create the tables with `docker compose exec api alembic upgrade head`.
+**With Docker instead:** set `POSTGRES_PASSWORD` in `.env`, then run the command below. It starts the API, a background worker, the page, PostgreSQL and Redis. Create the tables with `docker compose exec api alembic upgrade head`. `POST /v1/extract` needs neither PostgreSQL nor Redis.
 
 ```bash
 docker compose up --build
@@ -158,7 +158,11 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/organization/members` | Add someone who has already signed in; admin |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
 | `DELETE /v1/organization/members/{user_id}` | Remove a member; admin |
-| `GET /v1/shipments/{id}` | One shipment in the current organization |
+| `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments |
+| `GET /v1/shipments/{id}` | One shipment, with its documents and jobs |
+| `POST /v1/shipments/{id}/documents` | Upload a document for a later job |
+| `POST /v1/shipments/{id}/jobs` | Start a background check; returns 202 and supports `Idempotency-Key` |
+| `GET /v1/jobs/{id}` | Job status and saved results |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
