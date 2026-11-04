@@ -75,10 +75,9 @@ def stored_files(store):
 
 def test_celery_task_retries_a_temporary_failure(monkeypatch):
     from app.pipeline import pii
-    from app.worker.celery_app import app as celery_app, process_job
+    from app.worker.celery_app import process_job
 
     monkeypatch.setattr(pii, "warm_up", lambda: None)
-    monkeypatch.setattr(celery_app.conf, "task_always_eager", True)
     calls = []
 
     def flaky(organization_id, job_id):
