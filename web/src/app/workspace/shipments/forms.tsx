@@ -67,8 +67,13 @@ export function UploadForm({ organizationId, shipmentId }: { organizationId: str
 }
 
 export function StartCheckForm({ organizationId, shipmentId, disabled }: { organizationId: string; shipmentId: string; disabled: boolean }) {
-  const [state, action, pending] = useActionState(startJobAction, INITIAL);
-  const [attempt] = useState(() => crypto.randomUUID());
+  const [attempt, setAttempt] = useState(() => crypto.randomUUID());
+  // The key stops one click starting two jobs. Once the API has answered, the next click is a new request.
+  const [state, action, pending] = useActionState(async (previous: FormState, form: FormData) => {
+    const result = await startJobAction(previous, form);
+    setAttempt(crypto.randomUUID());
+    return result;
+  }, INITIAL);
   return (
     <form action={action} className="space-y-2">
       <input type="hidden" name="organization" value={organizationId} />
