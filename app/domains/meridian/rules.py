@@ -57,10 +57,25 @@ class ParsedDoc:
         return self.totals[0].unit if self.totals else None
 
 
+def _totals_only(totals: list[QuantityTotal], stated: int | None) -> list[QuantityTotal]:
+    """Models sometimes list item rows beside the total. A total is never smaller than its rows,
+    so keep the largest value for each unit. Different units stay apart: no pack size is guessed."""
+    largest: dict[str | None, QuantityTotal] = {}
+    for total in totals:
+        if total.unit not in largest or total.value > largest[total.unit].value:
+            largest[total.unit] = total
+    if stated is not None and len(largest) == 1:
+        only = next(iter(largest.values()))
+        if stated > only.value:  # the model's own total field saw a total its list missed
+            largest[only.unit] = QuantityTotal(value=stated, unit=only.unit)
+    return list(largest.values())
+
+
 def post_process(ext: LLMExtraction) -> ParsedDoc:
     """Deterministic clean-up after the model: units, pounds -> kg, primary total."""
     fields = ext.fields.model_copy()
-    totals = [QuantityTotal(value=t.value, unit=normalize_unit(t.unit)) for t in ext.quantity_totals]
+    totals = _totals_only([QuantityTotal(value=t.value, unit=normalize_unit(t.unit)) for t in ext.quantity_totals],
+                          fields.total_quantity)
 
     if fields.total_weight_kg is not None and (ext.weight_unit or "").strip().lower() in {"lb", "lbs", "pound", "pounds"}:
         fields.total_weight_kg = round(fields.total_weight_kg * LB_TO_KG, 2)

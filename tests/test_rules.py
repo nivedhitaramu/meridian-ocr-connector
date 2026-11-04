@@ -40,6 +40,27 @@ def test_two_totals_compares_like_with_like():
     assert r.status == "Match"
 
 
+def test_item_rows_listed_with_the_total_are_ignored():
+    pl = doc("packing_list", 205, [(101, "PKGS"), (104, "PKGS"), (205, "PKGS")])
+    assert pl.fields.total_quantity == 205
+    assert [(t.value, t.unit) for t in pl.totals] == [(205, "package")]
+
+
+def test_item_rows_cannot_cause_a_false_mismatch():
+    invoice = doc("commercial_invoice", 2400, [(1199, "PCS"), (1201, "PCS"), (2400, "PCS")])
+    packing = doc("packing_list", 2400, [(1200, "PCS"), (1200, "PCS"), (2400, "PCS")])
+    assert check([invoice, packing]).status == "Match"
+
+
+def test_stated_total_wins_when_the_list_only_has_rows():
+    assert doc("packing_list", 205, [(101, "PKGS"), (104, "PKGS")]).fields.total_quantity == 205
+
+
+def test_two_units_stay_separate_and_shipping_unit_wins():
+    pl = doc("packing_list", 1200, [(50, "CARTONS"), (1200, "PCS")])
+    assert pl.fields.total_quantity == 50 and len(pl.totals) == 2
+
+
 def test_weight_does_not_flip_status():
     a = doc("commercial_invoice", 75, [(75, "CTNS")])
     b = doc("packing_list", 75, [(75, "CTNS")])

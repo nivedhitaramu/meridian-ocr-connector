@@ -25,7 +25,7 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstri
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
 LLM_TIMEOUT_S = _int("LLM_TIMEOUT_S", 60)
-PROMPT_VERSION = "meridian-v1"
+PROMPT_VERSION = "meridian-v2"
 
 # Vision fallback. Leave VISION_MODEL empty to return a manual-review error instead.
 VISION_BASE_URL = os.getenv("VISION_BASE_URL", LLM_BASE_URL).rstrip("/")

@@ -43,6 +43,9 @@ _LABEL_WORDS = {
 }
 
 PLACEHOLDER_RE = re.compile(r"<[A-Z_]+_\d+>")
+# NER can read a one-word company as a place. Right after these labels, a "place" is the company.
+# People are still masked here: only LOCATION spans get this exception.
+_PARTY_LABEL = re.compile(r"\b(?:exporter|shipper|consignee|receiver|ship\s+to|sold\s+to|bill\s+to)\s*[:\-]\s*$", re.IGNORECASE)
 
 # Shapes that must never leave the machine. Checked after masking, independently of Presidio.
 _RESIDUAL_PATTERNS = {
@@ -208,6 +211,8 @@ def detect(text: str) -> list[Span]:
         for start, end in _line_parts(text, r.start, r.end):
             if r.entity_type in ("PERSON", "LOCATION") and _looks_like_company_or_label(text[start:end]):
                 continue  # company names may stay in the prompt
+            if r.entity_type == "LOCATION" and _PARTY_LABEL.search(text[text.rfind("\n", 0, start) + 1:start]):
+                continue
             spans.append(Span(start, end, r.entity_type, r.score))
     return resolve_overlaps(spans)
 
@@ -237,7 +242,8 @@ def scrub_fields(fields, vault: PlaceholderVault) -> int:
         spans = [Span(m.start(), m.end(), kind, 1.0)
                  for kind, regex in _RESIDUAL_PATTERNS.items() for m in regex.finditer(value)]
         if name != "invoice_number":  # NER on a reference like MF-88421 only adds noise
-            spans += detect(value)
+            # These fields hold a company, and a one-word company can read as a place. People are still caught.
+            spans += [s for s in detect(value) if s.entity_type != "LOCATION"]
         if spans:
             setattr(fields, name, apply_mask(value, spans, vault))
             changed += 1

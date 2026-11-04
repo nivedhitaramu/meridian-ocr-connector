@@ -11,7 +11,7 @@ Personal data is masked on our own machine before any model call, and code makes
 | | |
 |---|---|
 | **Live demo** | Not deployed yet |
-| **Accuracy** | Not measured with the real model yet ([see Evaluation](#evaluation)) |
+| **Accuracy** | Measured on synthetic documents only ([see Evaluation](#evaluation)) |
 | **Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 
 ## How it works
@@ -233,11 +233,13 @@ The page shows the last request's four stages, durations, status and entity coun
 
 ## Evaluation
 
+Measured on 2026-11-04 with `gemini-3.1-flash-lite` on a paid plan, using prompt `meridian-v2`.
+
 | Metric | Result with the real model |
 |---|---|
-| Field match after normalization | Not measured yet |
-| Document-type accuracy | Not measured yet |
-| Rule accuracy | Not measured yet |
+| Field match after normalization | 120/120 = 100% |
+| Document-type accuracy | 20/20 = 100% |
+| Rule accuracy | 12/12 = 100% |
 
 **Field match normalization:**
 - Text is compared without case and with collapsed spaces.
@@ -263,9 +265,11 @@ python scripts/evaluate.py --sheet samples/holdout/holdout_sheet.csv --cases sam
 
 | Metric | Holdout result with the real model |
 |---|---|
-| Field match after normalization | Not measured yet |
-| Document-type accuracy | Not measured yet |
-| Rule accuracy | Not measured yet |
+| Field match after normalization | 84/84 = 100% |
+| Document-type accuracy | 14/14 = 100% |
+| Rule accuracy | 8/8 = 100% |
+
+**Read these numbers with care.** The first holdout run scored 94.0% on fields and 87.5% on rules. It found three bugs, which were fixed before this run, so these documents are no longer truly unseen. All documents are synthetic, so real scans may score lower.
 
 With the API running:
 

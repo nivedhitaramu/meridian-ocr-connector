@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import re
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -15,6 +16,10 @@ from ..core import config
 from ..core.errors import PipelineError
 from ..domains.meridian.prompt import SYSTEM_PROMPT
 from ..domains.meridian.schemas import LLMExtraction
+
+
+RETRY_WAITS_S = (2, 5, 12)  # temporary errors are common on busy hosted models
+TEMPORARY_STATUS = {429, 500, 502, 503, 504}
 
 
 @dataclass
@@ -29,11 +34,17 @@ def _post(base_url: str, api_key: str, payload: dict) -> dict:
     if not api_key and "localhost" not in base_url and "127.0.0.1" not in base_url:
         raise PipelineError("llm_not_configured")
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    try:
-        resp = httpx.post(f"{base_url}/chat/completions", json=payload, headers=headers,
-                          timeout=config.LLM_TIMEOUT_S)
-    except httpx.HTTPError as exc:
-        raise PipelineError("llm_unreachable") from exc
+    for wait in (*RETRY_WAITS_S, None):
+        try:
+            resp = httpx.post(f"{base_url}/chat/completions", json=payload, headers=headers,
+                              timeout=config.LLM_TIMEOUT_S)
+        except httpx.HTTPError as exc:
+            if wait is None:
+                raise PipelineError("llm_unreachable") from exc
+        else:
+            if resp.status_code not in TEMPORARY_STATUS or wait is None:
+                break
+        time.sleep(wait)
     if resp.status_code == 429:
         raise PipelineError("llm_rate_limited")
     if resp.status_code >= 400:
