@@ -67,6 +67,8 @@ JOB_MAX_ATTEMPTS = _int("JOB_MAX_ATTEMPTS", 3)
 # --- Web -------------------------------------------------------------------
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:8501").split(",") if o.strip()]
 RATE_LIMIT_PER_MINUTE = _int("RATE_LIMIT_PER_MINUTE", 30)  # per client, on the extract endpoints. 0 turns it off.
+# Across all clients, per running copy. A public demo on a paid key needs this: each request costs money. 0 turns it off.
+DAILY_EXTRACT_LIMIT = _int("DAILY_EXTRACT_LIMIT", 200)
 # When set, /v1/trace/last and /v1/metrics need this value in the X-Internal-Token header. Set it when deployed.
 INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 

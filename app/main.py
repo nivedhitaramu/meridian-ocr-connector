@@ -22,7 +22,7 @@ from .db.tenancy import set_scope
 from .ingestion import eml
 from .pipeline import pii, runner as pipeline
 from .core.errors import CLIENT_MESSAGE, PipelineError
-from .core.rate_limit import RateLimiter
+from .core.rate_limit import DailyLimit, RateLimiter
 from .domains import registry
 from .core.telemetry import LAST_TRACE, METRICS, instrument_fastapi
 
@@ -40,6 +40,7 @@ instrument_fastapi(app)
 app.include_router(tenancy.router)
 app.include_router(shipments.router)
 limiter = RateLimiter(config.RATE_LIMIT_PER_MINUTE)
+daily_limit = DailyLimit(config.DAILY_EXTRACT_LIMIT)
 _RESPONSE_MODEL = registry.active().response_model
 
 
@@ -80,7 +81,9 @@ def _error(err: PipelineError) -> JSONResponse:
 
 def _rate_limited(request: Request) -> JSONResponse | None:
     if limiter.allow(request.client.host if request.client else "unknown"):
-        return None
+        if daily_limit.allow():
+            return None
+        return JSONResponse(status_code=429, content={"error": "The daily limit for this demo has been reached. Try again tomorrow."})
     return JSONResponse(status_code=429, content={"error": "Too many requests. Try again in a minute."},
                         headers={"Retry-After": "60"})
 

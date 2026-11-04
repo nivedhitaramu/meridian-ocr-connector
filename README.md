@@ -10,7 +10,7 @@ Personal data is masked on our own machine before any model call, and code makes
 
 | | |
 |---|---|
-| **Live demo** | Not deployed yet |
+| **Live demo** | Not deployed yet; ready to deploy with [docs/DEPLOY.md](docs/DEPLOY.md) |
 | **Accuracy** | Measured on synthetic documents only ([see Evaluation](#evaluation)) |
 | **Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 

@@ -1,0 +1,6 @@
+# One public port. The host provides HTTPS in front of this.
+:{$PORT}
+
+@api path /v1/* /docs /openapi.json /healthz
+reverse_proxy @api 127.0.0.1:8000
+reverse_proxy 127.0.0.1:8501
