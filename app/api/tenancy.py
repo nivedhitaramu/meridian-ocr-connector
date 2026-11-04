@@ -1,4 +1,4 @@
-"""Organizations, members and the first tenant-scoped record lookup."""
+"""Organizations, members and audit events."""
 from __future__ import annotations
 
 import uuid
@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import audit
-from ..db.models import Organization, OrganizationMember, Shipment, User
+from ..db.models import Organization, OrganizationMember, User
 from ..db.session import get_db
 from ..db.tenancy import set_scope
 from .deps import Member, NotFound, current_member, current_user, request_id_for, require_role
@@ -146,12 +146,3 @@ def list_audit_events(limit: int = Query(50, ge=1, le=200), member: Member = Dep
              "request_id": e.request_id, "created_at": e.created_at.isoformat()}
             for e in audit.recent(session, member.organization_id, limit)]
 
-
-@router.get("/shipments/{shipment_id}")
-def get_shipment(shipment_id: uuid.UUID, member: Member = Depends(current_member), session: Session = Depends(get_db)):
-    # Filtered here as well as by row-level security, so SQLite development stays isolated too.
-    shipment = session.scalar(select(Shipment).where(
-        Shipment.id == shipment_id, Shipment.organization_id == member.organization_id))
-    if shipment is None:
-        raise NotFound
-    return {"id": str(shipment.id), "reference": shipment.reference, "status": shipment.status}

@@ -13,9 +13,9 @@ Each diagram is labelled:
 |---|---|---|
 | 1. Experience | Streamlit clerk page with trace panel; Next.js foundation and workspace page | The rest of the Next.js product and admin console |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
-| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles and audit events | Shipments, jobs, review |
-| 4. Data and messaging | Temporary local files, deleted after each request; PostgreSQL schema and migrations, not yet used by the app | App use of PostgreSQL, Redis, job queue, private object storage |
-| 5. Document intelligence | All stages, running inside the API process | The same stages in separate workers |
+| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles, audit events, shipments and jobs | Human review |
+| 4. Data and messaging | PostgreSQL, Redis queue, and local or S3-compatible temporary storage | SQS, if chosen during AWS work |
+| 5. Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs | Scaling workers apart in production |
 | 6. Observability | OpenTelemetry spans, safe JSON logs, in-memory counters | Collector, Grafana or CloudWatch dashboards |
 
 ## Code layers
@@ -124,12 +124,12 @@ flowchart TB
 
 ## 2. Detailed document-processing architecture
 
-**Status: Partly built.** The steps match the code, except that job creation and saving results are Target.
+**Status: Built.** Job creation and saving results apply to the background job flow, not `/v1/extract`.
 
 ```mermaid
 flowchart TB
     upload["Upload shipment packet"] --> check["Validate file bytes, type and size"]
-    check --> job["Create processing job (Target)"]
+    check --> job["Create processing job (job flow)"]
     job --> render["Render PDF pages"]
     render --> ocr["Run local OCR with word boxes"]
     ocr --> detect["Presidio analyzer and signature band"]
@@ -148,7 +148,7 @@ flowchart TB
     vision --> normalize
     normalize --> validate["Pydantic schema validation"]
     validate --> rule["Deterministic rule engine"]
-    rule --> persist["Persist safe results (Target)"]
+    rule --> persist["Persist safe results (job flow)"]
 
     persist --> cleanup["Delete uploads and clear placeholder map"]
     manual --> cleanup
@@ -159,7 +159,7 @@ Every path reaches the cleanup step, including failures. Normalization and valid
 
 ## 3. Production database architecture
 
-**Status: Partly built.** The tables and migrations exist in `app/db/models.py` and `migrations/`, but the app doesn't read or write them yet.
+**Status: Built**, apart from review actions, which have a table but no API yet.
 
 ```mermaid
 erDiagram
@@ -259,7 +259,7 @@ Rules for this schema:
 
 ## 4. API architecture
 
-**Status: Target for the job flow.** `POST /v1/extract` stays synchronous, as the assignment requires, and is what exists today. Both flows must share one pipeline.
+**Status: Built.** `POST /v1/extract` stays synchronous, as the assignment requires. Both flows share one pipeline. It hasn't run with real sign-in yet.
 
 ```mermaid
 sequenceDiagram
@@ -292,10 +292,10 @@ sequenceDiagram
 | `GET /v1/trace/last` | Built | Sanitized trace of the last request |
 | `GET /v1/metrics` | Built | Counters |
 | `GET /healthz` | Built | Health check |
-| `POST /v1/shipments` | Target | Create a shipment |
-| `POST /v1/shipments/{id}/documents` | Target | Add documents |
-| `POST /v1/shipments/{id}/jobs` | Target | Start processing; returns 202 |
-| `GET /v1/jobs/{id}` | Target | Job status and result |
+| `POST /v1/shipments` | Built | Create a shipment |
+| `POST /v1/shipments/{id}/documents` | Built | Add documents |
+| `POST /v1/shipments/{id}/jobs` | Built | Start processing; returns 202 |
+| `GET /v1/jobs/{id}` | Built | Job status and result |
 | `POST /v1/results/{id}/reviews` | Target | Record a human review |
 | `/v1/organizations`, `/v1/users`, `/v1/analytics`, `/v1/audit-events` | Target | Administration and reporting |
 

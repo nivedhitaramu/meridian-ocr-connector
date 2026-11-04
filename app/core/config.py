@@ -53,6 +53,17 @@ MAX_EML_ATTACHMENTS = _int("MAX_EML_ATTACHMENTS", 10)
 MAX_PDF_PAGES = _int("MAX_PDF_PAGES", 5)        # longer PDFs are refused, never silently cut short
 VISION_MAX_PAGES = _int("VISION_MAX_PAGES", 3)  # longer fallback documents go to manual review
 
+# Files waiting on background jobs: "local" for one machine, "s3" when the API and workers run apart.
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local")
+STORAGE_DIR = Path(os.getenv("STORAGE_DIR", "./.job-uploads")).resolve()
+S3_BUCKET = os.getenv("S3_BUCKET", "")
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "")
+STORAGE_MAX_AGE_SECONDS = _int("STORAGE_MAX_AGE_SECONDS", 3600)  # older files were left behind by a crash
+
+# --- Background jobs -------------------------------------------------------
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+JOB_MAX_ATTEMPTS = _int("JOB_MAX_ATTEMPTS", 3)
+
 # --- Web -------------------------------------------------------------------
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:8501").split(",") if o.strip()]
 RATE_LIMIT_PER_MINUTE = _int("RATE_LIMIT_PER_MINUTE", 30)  # per client, on the extract endpoints. 0 turns it off.

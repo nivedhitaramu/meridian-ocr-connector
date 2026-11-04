@@ -1,6 +1,6 @@
 # Local stack: docker compose up --build
 # Create the tables with: docker compose exec api alembic upgrade head
-# The app doesn't read the database or Redis yet. #19 connects them and adds the worker.
+# POST /v1/extract needs neither. Product routes and the worker use PostgreSQL, Redis and shared storage.
 services:
   api:
     build: .
@@ -8,6 +8,10 @@ services:
     environment:
       ALLOWED_ORIGINS: http://localhost:8501
       DATABASE_URL: postgresql+psycopg://meridian:${POSTGRES_PASSWORD}@postgres:5432/meridian
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_DIR: /data/uploads
+    volumes:
+      - job-uploads:/data/uploads
     ports:
       - "8000:8000"
     depends_on:
@@ -21,6 +25,22 @@ services:
       timeout: 5s
       retries: 6
       start_period: 120s # loading the spaCy model takes a while
+
+  worker:
+    build: .
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=1", "--schedule=/tmp/celerybeat-schedule"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://meridian:${POSTGRES_PASSWORD}@postgres:5432/meridian
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_DIR: /data/uploads
+    volumes:
+      - job-uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   ui:
     build: .
@@ -68,3 +88,4 @@ services:
 
 volumes:
   postgres-data:
+  job-uploads:

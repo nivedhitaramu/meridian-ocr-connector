@@ -23,6 +23,11 @@ sqlalchemy==2.1.6
 alembic==1.20.1
 psycopg[binary]==3.3.6
 
+# Background jobs and file storage
+celery[redis]==5.6.3
+boto3==1.43.123
+opentelemetry-instrumentation-celery==0.66b2
+
 # Sign-in
 pyjwt[crypto]==2.15.1
 
@@ -37,5 +42,6 @@ streamlit==1.66.1
 requests==2.34.2
 
 # Dev
+moto[s3]==5.2.5
 pytest==9.2.0
 reportlab==5.1.0
