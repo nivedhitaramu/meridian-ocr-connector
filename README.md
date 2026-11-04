@@ -37,16 +37,16 @@ flowchart LR
 
 ## Architecture
 
-The design is a modular monolith with background workers planned. The API, the pipeline and the Meridian rules are separate layers, so new document workflows can reuse the platform.
+The design is a modular monolith with background workers and an API-first design. The API, the pipeline and the Meridian rules are separate layers, so new document workflows can reuse the platform.
 
 | Layer | Today | Planned |
 |---|---|---|
-| Experience | Streamlit page and trace panel; Next.js foundation | The rest of the Next.js product and admin console |
-| Edge and security | CORS limit, file checks | HTTPS, auth, roles, rate limiting |
-| Control plane | Stateless FastAPI endpoints | Tenants, shipments, jobs, review, audit |
-| Data and messaging | Temporary files only | PostgreSQL, Redis, queue, object storage |
-| Document intelligence | All stages, in the API process | The same stages in separate workers |
-| Observability | Spans, safe logs, counters | Collector and dashboards |
+| Experience | Streamlit page and trace panel; Next.js shipments, comparison, exceptions, review, dashboard, observability and settings | Testing every screen end to end |
+| Edge and security | CORS limit, file checks, rate limiting, Clerk sign-in, roles | HTTPS and WAF when deployed |
+| Control plane | FastAPI endpoints for extraction, organizations, shipments, jobs, review and audit | Customer API keys and webhooks |
+| Data and messaging | PostgreSQL, Redis queue, local or S3-compatible temporary storage | SQS, if chosen during AWS work |
+| Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs | Scaling workers apart in production |
+| Observability | Spans, safe logs, counters, summary screen | Collector and dashboards |
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has all six diagrams, each labelled by status.
 
@@ -133,8 +133,8 @@ Example response shape:
   "pipeline": {
     "ocr_engine": "tesseract",
     "used_vision_fallback": false,
-    "model": "model-name",
-    "prompt_version": "meridian-v1",
+    "model": "gemini-3.1-flash-lite",
+    "prompt_version": "meridian-v2",
     "timings_ms": {"ocr": 640, "pii": 38, "llm": 1102, "rule": 3}
   },
   "documents": []
