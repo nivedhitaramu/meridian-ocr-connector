@@ -72,6 +72,27 @@ jobs:
         if: always()
         run: docker compose down --volumes
 
+  demo-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the live demo image
+        run: docker build -f deploy/demo/Dockerfile -t meridian-demo .
+      - name: Refuses to start without the internal token
+        run: "! docker run --rm -e PORT=7860 meridian-demo"
+      - name: Start it with the mock model
+        run: docker run -d --name demo -p 7860:7860 -e LLM_PROVIDER=mock -e INTERNAL_API_TOKEN=ci-only-value meridian-demo
+      - name: Check the API and page through the one public port
+        run: |
+          for i in $(seq 1 60); do curl --fail --silent http://localhost:7860/healthz && break; sleep 3; done
+          curl --fail --silent --show-error -F file=@samples/S02_invoice.pdf -F file2=@samples/S02_packing.pdf http://localhost:7860/v1/extract | grep -q '"status":"Match"'
+          for i in $(seq 1 20); do curl --fail --silent http://localhost:7860/_stcore/health && break; sleep 3; done
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:7860/v1/metrics)" = "401"
+      - name: Show the container's log on failure
+        if: failure()
+        run: docker logs demo
+
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 15

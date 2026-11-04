@@ -5,7 +5,7 @@ from PIL import Image
 from app import main
 from app.core import config
 from app.core.errors import PipelineError
-from app.core.rate_limit import RateLimiter
+from app.core.rate_limit import DailyLimit, RateLimiter
 from app.core.telemetry import LAST_TRACE
 from app.domains.meridian.domain import DOMAIN
 from app.pipeline import llm, ocr, runner
@@ -81,3 +81,23 @@ def test_internal_endpoints_need_the_token_when_set(client, monkeypatch, path):
     assert client.get(path).status_code == 401
     assert client.get(path, headers={"X-Internal-Token": "wrong"}).status_code == 401
     assert client.get(path, headers={"X-Internal-Token": "secret-value"}).status_code == 200
+
+
+def test_daily_limit_stops_all_clients_and_resets_the_next_day():
+    now = [0.0]
+    limit = DailyLimit(2, clock=lambda: now[0])
+    assert limit.allow() and limit.allow()
+    assert not limit.allow()
+    now[0] = 86400.0
+    assert limit.allow()
+
+
+def test_daily_limit_of_zero_is_off():
+    assert all(DailyLimit(0).allow() for _ in range(5))
+
+
+def test_extract_refuses_past_the_daily_limit_before_any_work(client, monkeypatch):
+    monkeypatch.setattr(main, "daily_limit", DailyLimit(1))
+    assert client.post("/v1/extract", files={"file": ("x", b"junk")}).status_code == 415
+    response = client.post("/v1/extract", files={"file": ("x", b"junk")})
+    assert response.status_code == 429 and "daily limit" in response.json()["error"]

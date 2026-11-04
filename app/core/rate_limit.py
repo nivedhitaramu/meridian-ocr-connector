@@ -28,3 +28,26 @@ class RateLimiter:
                 return False
             hits.append(now)
             return True
+
+
+class DailyLimit:
+    """A total for the whole app per UTC day. It protects the model budget, not fairness between clients."""
+
+    def __init__(self, limit: int, clock=time.time) -> None:
+        self.limit = limit
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._day = -1
+        self._count = 0
+
+    def allow(self) -> bool:
+        if self.limit <= 0:
+            return True
+        day = int(self._clock() // 86400)
+        with self._lock:
+            if day != self._day:
+                self._day, self._count = day, 0
+            if self._count >= self.limit:
+                return False
+            self._count += 1
+            return True
