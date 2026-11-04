@@ -23,7 +23,7 @@ from .ingestion import eml
 from .pipeline import pii, runner as pipeline
 from .core.errors import CLIENT_MESSAGE, PipelineError
 from .core.rate_limit import RateLimiter
-from .domains.meridian.schemas import ExtractResponse
+from .domains import registry
 from .core.telemetry import LAST_TRACE, METRICS, instrument_fastapi
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -39,6 +39,7 @@ app.add_middleware(
 instrument_fastapi(app)
 app.include_router(tenancy.router)
 limiter = RateLimiter(config.RATE_LIMIT_PER_MINUTE)
+_RESPONSE_MODEL = registry.active().response_model
 
 
 @app.on_event("startup")
@@ -90,7 +91,7 @@ def _not_authorized(request: Request) -> JSONResponse | None:
     return JSONResponse(status_code=401, content={"error": "Not authorized."})
 
 
-@app.post("/v1/extract", response_model=ExtractResponse)
+@app.post("/v1/extract", response_model=_RESPONSE_MODEL)
 async def extract(request: Request, file: UploadFile = File(...), file2: UploadFile | None = File(None)):
     if (refused := _rate_limited(request)) is not None:
         return refused
@@ -103,7 +104,7 @@ async def extract(request: Request, file: UploadFile = File(...), file2: UploadF
         return _error(err)
 
 
-@app.post("/v1/extract-eml", response_model=ExtractResponse)
+@app.post("/v1/extract-eml", response_model=_RESPONSE_MODEL)
 async def extract_eml(request: Request, file: UploadFile = File(...)):
     if (refused := _rate_limited(request)) is not None:
         return refused
