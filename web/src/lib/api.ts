@@ -30,7 +30,7 @@ async function request<T>(context: ApiContext, path: string, init: RequestInit =
   const headers = new Headers(init.headers);
   if (context.token) headers.set("Authorization", `Bearer ${context.token}`);
   if (context.organizationId) headers.set("X-Organization-Id", context.organizationId);
-  if (init.body) headers.set("Content-Type", "application/json");
+  if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
 
   const response = await (context.fetchImpl ?? fetch)(`${context.baseUrl}${path}`, {
     ...init,
@@ -79,6 +79,100 @@ export const changeRole = (context: ApiContext, userId: string, role: Role) =>
 
 export const removeMember = (context: ApiContext, userId: string) =>
   request<void>(context, `/v1/organization/members/${encodeURIComponent(userId)}`, { method: "DELETE" });
+
+export type Shipment = { id: string; reference: string; status: string; created_at: string | null };
+
+export type ShipmentDetail = Shipment & {
+  documents: { id: string; document_type: string | null; processing_status: string; page_count: number | null }[];
+  jobs: { id: string; status: string }[];
+};
+
+export type JobDocument = {
+  id: string;
+  document_type: string | null;
+  fields: Record<string, string | number | null>;
+  quantity_unit: string | null;
+};
+
+export type Job = {
+  id: string;
+  shipment_id: string;
+  status: string;
+  attempts: number;
+  error_class: string | null;
+  timings_ms: Record<string, number> | null;
+  entity_counts: Record<string, number> | null;
+  check: { status: string; reason: string } | null;
+  documents: JobDocument[];
+};
+
+export type ExceptionItem = {
+  job_id: string;
+  shipment_id: string;
+  reference: string;
+  job_status: string;
+  error_class: string | null;
+  check_status: string | null;
+  reason: string | null;
+  created_at: string | null;
+};
+
+export type Analytics = {
+  shipments: number;
+  jobs_by_status: Record<string, number>;
+  checks_by_status: Record<string, number>;
+  open_exceptions: number;
+};
+
+export type Observability = {
+  jobs_measured: number;
+  latest: {
+    job_id: string;
+    job_status: string;
+    check_status: string | null;
+    error_class: string | null;
+    timings_ms: Record<string, number>;
+    entity_counts: Record<string, number>;
+  } | null;
+  average_stage_ms: Record<string, number>;
+  entities_by_type: Record<string, number>;
+  outcomes: Record<string, number>;
+  checks_by_status: Record<string, number>;
+};
+
+export const listShipments = (context: ApiContext, limit = 50) => request<Shipment[]>(context, `/v1/shipments?limit=${limit}`);
+
+export const getShipment = (context: ApiContext, id: string) =>
+  request<ShipmentDetail>(context, `/v1/shipments/${encodeURIComponent(id)}`);
+
+export const createShipment = (context: ApiContext, reference: string) =>
+  request<Shipment>(context, "/v1/shipments", { method: "POST", body: JSON.stringify({ reference }) });
+
+export const uploadDocument = (context: ApiContext, shipmentId: string, file: Blob) => {
+  const body = new FormData();
+  body.set("file", file, "upload"); // the real filename stays out of the request
+  return request<{ id: string }>(context, `/v1/shipments/${encodeURIComponent(shipmentId)}/documents`, { method: "POST", body });
+};
+
+export const startJob = (context: ApiContext, shipmentId: string, idempotencyKey: string) =>
+  request<{ id: string; status: string }>(context, `/v1/shipments/${encodeURIComponent(shipmentId)}/jobs`, {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+
+export const getJob = (context: ApiContext, id: string) => request<Job>(context, `/v1/jobs/${encodeURIComponent(id)}`);
+
+export const listExceptions = (context: ApiContext) => request<ExceptionItem[]>(context, "/v1/exceptions");
+
+export const addReview = (
+  context: ApiContext,
+  jobId: string,
+  review: { action: "resolve" | "follow_up"; reason: string; corrected_quantity: number | null },
+) => request<{ id: string }>(context, `/v1/jobs/${encodeURIComponent(jobId)}/reviews`, { method: "POST", body: JSON.stringify(review) });
+
+export const getAnalytics = (context: ApiContext) => request<Analytics>(context, "/v1/analytics/summary");
+
+export const getObservability = (context: ApiContext) => request<Observability>(context, "/v1/observability/summary");
 
 export const createOrganization = (context: ApiContext, name: string) =>
   request<Pick<Organization, "id" | "name" | "role">>(context, "/v1/organizations", {

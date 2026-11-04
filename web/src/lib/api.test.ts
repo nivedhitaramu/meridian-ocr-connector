@@ -1,6 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { addMember, ApiError, changeRole, createOrganization, getMe, getOrganization, removeMember } from "./api";
+import {
+  addMember,
+  addReview,
+  ApiError,
+  changeRole,
+  createOrganization,
+  getMe,
+  getOrganization,
+  removeMember,
+  startJob,
+  uploadDocument,
+} from "./api";
 
 function respond(status: number, body: unknown = {}) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status }));
@@ -68,6 +79,26 @@ describe("api client", () => {
   it("handles an empty 204 from a removal", async () => {
     const mock = vi.fn(async () => new Response(null, { status: 204 }));
     await expect(removeMember(context(mock), "1")).resolves.toBeUndefined();
+  });
+
+  it("uploads without the real filename or a JSON content type", async () => {
+    const mock = respond(201, { id: "1" });
+    await uploadDocument(context(mock), "s1", new File(["x"], "priya-raman-passport.pdf"));
+    const { init, headers } = sent(mock);
+    expect(headers.has("Content-Type")).toBe(false);
+    expect((init.body as FormData).get("file")).toMatchObject({ name: "upload" });
+  });
+
+  it("sends an idempotency key when starting a job", async () => {
+    const mock = respond(202, { id: "1", status: "queued" });
+    await startJob(context(mock), "s1", "attempt-1");
+    expect(sent(mock).headers.get("Idempotency-Key")).toBe("attempt-1");
+  });
+
+  it("sends a review with its reason", async () => {
+    const mock = respond(201, { id: "1" });
+    await addReview(context(mock), "j1", { action: "resolve", reason: "Recounted.", corrected_quantity: 118 });
+    expect(JSON.parse(sent(mock).init.body as string)).toEqual({ action: "resolve", reason: "Recounted.", corrected_quantity: 118 });
   });
 
   it("never caches, because responses depend on who is signed in", async () => {

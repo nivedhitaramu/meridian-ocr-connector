@@ -68,6 +68,8 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 | `app/domains/meridian/schemas.py` | Pydantic models and API contract |
 | `app/domains/meridian/prompt.py` | Extraction prompt |
 | `ui/streamlit_app.py` | Clerk page and trace panel |
+| `app/api/` | Product routes: tenancy, shipments and jobs, reviews and summaries |
+| `app/worker/` | Celery jobs; only IDs go through the queue |
 | `web/` | Next.js product UI; see `web/README.md` |
 | `docs/ARCHITECTURE.md` | Six architecture diagrams, labelled Built or Target |
 | `scripts/` | Sample generation, `.eml` packets, evaluation |
@@ -143,6 +145,6 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Real-model accuracy (#5, 2026-11-04):** `gemini-3.1-flash-lite`, prompt `meridian-v2`: 100% on field, type and rule for the test sheet and holdout. The first holdout run was 94.0% on fields and 87.5% on rules, and its fixes mean the holdout is no longer unseen. A final score should use new documents.
 
-**Next step:** the blockers are real accuracy with an LLM key (#5), the live demo (#6), and #20 and #21, which most remaining ALN-web issues need.
+**Next step:** create a Clerk application so the signed-in screens can run for real, choose a host for the live demo (#6, `docs/DEPLOY.md`), then re-score on new documents.
 
 **Open questions for the team:** submission deadline, final LLM provider, live demo hosting, who owns what, and whether the Target layers should start before submission.

@@ -108,8 +108,7 @@ def test_reviewer_must_belong_to_the_organization(engine):
         result = models.VerificationResult(organization_id=a.id, job_id=job.id, status="Match", reason="Equal.")
         session.add(result)
         session.flush()
-        session.add(models.ReviewAction(organization_id=a.id, verification_result_id=result.id,
-                                        reviewer_id=user.id, action="approve"))
+        session.add(models.ReviewAction(organization_id=a.id, job_id=job.id, reviewer_id=user.id, action="resolve", reason="Checked."))
         with pytest.raises(IntegrityError):
             session.flush()
         session.rollback()

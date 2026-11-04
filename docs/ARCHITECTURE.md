@@ -11,7 +11,7 @@ Each diagram is labelled:
 
 | Layer | Built | Target |
 |---|---|---|
-| 1. Experience | Streamlit clerk page with trace panel; Next.js foundation and workspace page | The rest of the Next.js product and admin console |
+| 1. Experience | Streamlit clerk page; Next.js shipments, comparison, exceptions, dashboard, observability and settings, not yet run with real sign-in | Verifying those screens end to end |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
 | 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles, audit events, shipments and jobs | Human review |
 | 4. Data and messaging | PostgreSQL, Redis queue, and local or S3-compatible temporary storage | SQS, if chosen during AWS work |

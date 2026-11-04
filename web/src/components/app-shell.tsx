@@ -1,11 +1,15 @@
 import { UserButton } from "@clerk/nextjs";
-import { Building2, Settings } from "lucide-react";
+import { Activity, Building2, LayoutDashboard, Package, Settings, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 // Only screens that exist. Later issues add theirs here.
 const NAVIGATION = [
   { href: "/workspace", label: "Workspace", icon: Building2 },
+  { href: "/workspace/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/workspace/shipments", label: "Shipments", icon: Package },
+  { href: "/workspace/exceptions", label: "Exceptions", icon: TriangleAlert },
+  { href: "/workspace/observability", label: "Observability", icon: Activity },
   { href: "/workspace/settings", label: "Settings", icon: Settings },
 ];
 
@@ -26,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               key={href}
               href={href}
-              className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 rounded-md px-3 py-2 text-sm"
+              className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap"
             >
               <Icon aria-hidden className="size-4" />
               {label}
