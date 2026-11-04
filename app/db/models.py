@@ -175,20 +175,21 @@ class VerificationResult(Base):
 class ReviewAction(Base):
     __tablename__ = "review_actions"
     __table_args__ = (
-        ForeignKeyConstraint(["organization_id", "verification_result_id"],
-                             ["verification_results.organization_id", "verification_results.id"],
-                             name="fk_review_actions_tenant_result", ondelete="CASCADE"),
+        ForeignKeyConstraint(["organization_id", "job_id"], ["processing_jobs.organization_id", "processing_jobs.id"],
+                             name="fk_review_actions_tenant_job", ondelete="CASCADE"),
         ForeignKeyConstraint(["organization_id", "reviewer_id"],
                              ["organization_members.organization_id", "organization_members.user_id"],
                              name="fk_review_actions_tenant_reviewer"),
-        Index("ix_review_actions_result", "verification_result_id"),
+        Index("ix_review_actions_job", "job_id"),
     )
 
     id: Mapped[uuid.UUID] = _id()
     organization_id: Mapped[uuid.UUID] = _tenant()
-    verification_result_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    job_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     reviewer_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     action: Mapped[str] = mapped_column(String(50))
+    reason: Mapped[str] = mapped_column(String(300))
+    correction: Mapped[dict | None] = mapped_column(JsonValue)  # saved beside the model's result, never over it
     created_at: Mapped[datetime] = _created_at()
 
 

@@ -142,7 +142,7 @@ def test_member_with_reviews_cannot_be_removed(client):  # noqa: F811
         result = models.VerificationResult(organization_id=org, job_id=job.id, status="Match", reason="Equal.")
         session.add(result)
         session.flush()
-        session.add(models.ReviewAction(organization_id=org, verification_result_id=result.id, reviewer_id=bob_id, action="approve"))
+        session.add(models.ReviewAction(organization_id=org, job_id=job.id, reviewer_id=bob_id, action="resolve", reason="Checked."))
         session.commit()
     assert http.delete(f"/v1/organization/members/{bob_id}", headers=ALICE).status_code == 409
     assert http.get("/v1/organization", headers=BOB).status_code == 200

@@ -163,6 +163,10 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/shipments/{id}/documents` | Upload a document for a later job |
 | `POST /v1/shipments/{id}/jobs` | Start a background check; returns 202 and supports `Idempotency-Key` |
 | `GET /v1/jobs/{id}` | Job status and saved results |
+| `GET /v1/exceptions` | Open mismatches and manual review cases |
+| `GET`, `POST /v1/jobs/{id}/reviews` | Read reviews, or record one with a reason; supervisor or admin |
+| `GET /v1/analytics/summary` | Counts for the organization |
+| `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
