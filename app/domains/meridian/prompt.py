@@ -1,5 +1,7 @@
 """The Meridian extraction prompt. Masked OCR text goes under these instructions."""
 
+PROMPT_VERSION = "meridian-v2"
+
 SYSTEM_PROMPT = """You classify one document and fill a JSON object.
 Allowed document_type values: Commercial invoice, Packing list, Delivery receipt.
 Fields: invoice_number, shipper_name, receiver_name, shipment_date, total_quantity, total_weight_kg.

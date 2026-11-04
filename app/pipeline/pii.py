@@ -232,16 +232,16 @@ def residual_types(text: str) -> set[str]:
     return {name for name, regex in _RESIDUAL_PATTERNS.items() if regex.search(text)}
 
 
-def scrub_fields(fields, vault: PlaceholderVault) -> int:
+def scrub_fields(fields, vault: PlaceholderVault, reference_fields: tuple[str, ...], party_fields: tuple[str, ...]) -> int:
     """Model output is untrusted: replace personal data that reached a field. Returns how many fields changed."""
     changed = 0
-    for name in ("invoice_number", "shipper_name", "receiver_name"):
+    for name in (*reference_fields, *party_fields):
         value = getattr(fields, name)
         if not value or PLACEHOLDER_RE.fullmatch(value):
             continue
         spans = [Span(m.start(), m.end(), kind, 1.0)
                  for kind, regex in _RESIDUAL_PATTERNS.items() for m in regex.finditer(value)]
-        if name != "invoice_number":  # NER on a reference like MF-88421 only adds noise
+        if name in party_fields:  # NER on a reference like MF-88421 only adds noise
             # These fields hold a company, and a one-word company can read as a place. People are still caught.
             spans += [s for s in detect(value) if s.entity_type != "LOCATION"]
         if spans:

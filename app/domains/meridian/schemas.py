@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from ..base import PIIInfo, PipelineInfo
+
 DocumentType = Literal["commercial_invoice", "packing_list", "delivery_receipt", "unknown"]
 CheckStatus = Literal["Match", "Mismatch", "Incomplete", "Not applicable"]
 
@@ -122,20 +124,6 @@ class LLMExtraction(BaseModel):
 class Check(BaseModel):
     status: CheckStatus
     reason: str  # never contains names, IDs, phones, emails
-
-
-class PIIInfo(BaseModel):
-    masked_before_llm: bool = False
-    entity_counts: dict[str, int] = Field(default_factory=dict)
-    placeholder_count: int = 0
-
-
-class PipelineInfo(BaseModel):
-    ocr_engine: str = "tesseract"
-    used_vision_fallback: bool = False
-    model: str | None = None
-    prompt_version: str | None = None
-    timings_ms: dict[str, int] = Field(default_factory=dict)
 
 
 class DocumentResult(BaseModel):

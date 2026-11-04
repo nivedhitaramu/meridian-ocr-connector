@@ -7,6 +7,7 @@ from app.core import config
 from app.core.errors import PipelineError
 from app.core.rate_limit import RateLimiter
 from app.core.telemetry import LAST_TRACE
+from app.domains.meridian.domain import DOMAIN
 from app.pipeline import llm, ocr, runner
 
 
@@ -30,7 +31,7 @@ def test_long_fallback_document_goes_to_manual_review(monkeypatch):
     monkeypatch.setattr(config, "VISION_MODEL", "vision-model")
     monkeypatch.setattr(llm, "_post", lambda *a: pytest.fail("should not call the model"))
     with pytest.raises(PipelineError) as e:
-        llm.extract_from_images([Image.new("RGB", (10, 10))] * (config.VISION_MAX_PAGES + 1))
+        llm.extract_from_images([Image.new("RGB", (10, 10))] * (config.VISION_MAX_PAGES + 1), DOMAIN)
     assert e.value.error_class == "manual_review_too_many_pages"
 
 
