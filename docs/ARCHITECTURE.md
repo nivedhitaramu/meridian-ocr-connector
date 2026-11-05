@@ -11,11 +11,11 @@ Each diagram is labelled:
 
 | Layer | Built | Target |
 |---|---|---|
-| 1. Experience | Streamlit clerk page; Next.js shipments, comparison, exceptions, review, dashboard, observability and settings. Sign-in, organization, shipment, upload and one check have run with a real Clerk account | Testing comparison, review and dashboards end to end |
+| 1. Experience | Streamlit clerk page; Next.js intake, shipments, comparison, exceptions, approvals, dashboard, observability, settings and API access. Sign-in, organization, shipment, upload and one check have run with a real Clerk account | Testing the other screens end to end |
 | 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk sign-in screens and token verification, role checks | HTTPS, WAF |
-| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles, audit events, shipments, jobs and human review | Customer API keys and webhooks |
+| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles, audit events, intake, shipments, jobs, approvals, customer API keys and webhooks | Connectors and billing |
 | 4. Data and messaging | PostgreSQL, Redis queue, and local or S3-compatible temporary storage | SQS, if chosen during AWS work |
-| 5. Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs | Scaling workers apart in production |
+| 5. Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs; versioned configuration; grouping with local OCR only | Scaling workers apart in production |
 | 6. Observability | OpenTelemetry spans, safe JSON logs, in-memory counters | Collector, Grafana or CloudWatch dashboards |
 
 ## Code layers
@@ -26,12 +26,13 @@ app/
   core/              Platform: settings, errors, telemetry
   ingestion/         Platform: upload checks, storage, .eml attachments
   pipeline/          Document intelligence: OCR, PII, vision, LLM, runner
-  domains/meridian/  Meridian only: schemas, prompt, business rules
+  domains/configured.py  The engine that runs a workflow from its configuration
+  domains/meridian/  Meridian only: configuration file, grouping rules, offline mock
 ui/                  Experience: Streamlit page
 web/                 Experience: Next.js product UI
 ```
 
-A new document workflow should add a folder under `domains/` and register it in `domains/registry.py`. `pipeline/` reaches a workflow through the `Domain` interface in `domains/base.py`. No second workflow exists yet.
+A new document workflow should add a folder under `domains/` and register it in `domains/registry.py`. `pipeline/` reaches a workflow through the `Domain` interface in `domains/base.py`. A test runs a second workflow from configuration alone, but no second workflow ships yet.
 
 ## 1. Complete system architecture
 
@@ -297,6 +298,10 @@ sequenceDiagram
 | `POST /v1/shipments/{id}/jobs` | Built | Start processing; returns 202 |
 | `GET /v1/jobs/{id}` | Built | Job status and result |
 | `GET`, `POST /v1/jobs/{id}/reviews` | Built | Read or record a human review |
+| `POST /v1/jobs/{id}/submit` | Built | Ask for approval on an exception |
+| `POST /v1/intake` and `/v1/intake/items/{id}/assign` | Built | Group uploaded documents, or record a person's decision |
+| `/v1/api-keys`, `/v1/webhooks` | Built | Customer access, documented in `docs/API.md` |
+| `GET /v1/configurations/{version}` | Built | The rules behind a saved result |
 | `/v1/organizations`, `/v1/organization`, `/v1/exceptions`, `/v1/analytics/summary`, `/v1/observability/summary`, `/v1/audit-events` | Built | Administration and reporting |
 
 ## 5. Production deployment architecture

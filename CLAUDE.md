@@ -12,7 +12,7 @@ Team Delta's project for the Build Fast with AI (BFWAI) OCR Connector fellowship
 A receiving clerk uploads shipping documents and gets an answer to one question: **does the invoice quantity match the packing list?**
 
 - **Now:** meet every fellowship requirement. The assignment PDF and the `fde-week-2.vercel.app/meridian` page are the authority on what's graded.
-- **After submission:** grow it into a B2B document intelligence SaaS, with Meridian as the first domain pack. Those product layers are now built, apart from AWS and connectors.
+- **After submission:** grow it into a B2B document intelligence SaaS, with Meridian as the first domain pack. Those product layers are now built, apart from AWS and connectors, and nothing is deployed.
 - **Build order:** finish the graded fellowship work first. The user has also asked for the product issues to be built before submission.
 - **Architecture authority:** `docs/ARCHITECTURE.md`, drawn from the user's six diagrams, is the source of truth for design. The assignment still decides what's graded. Label anything not built as Target.
 
@@ -22,7 +22,7 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 
 **Fields:** `fields` has exactly six keys: `invoice_number`, `shipper_name`, `receiver_name`, `shipment_date`, `total_quantity`, `total_weight_kg`. Use null when absent. Helper values such as units stay outside `fields`.
 
-**Statuses:** exactly four, always decided by `app/domains/meridian/rules.py` and never by the model.
+**Statuses:** exactly four, always decided by the engine in `app/domains/configured.py` from Meridian's configuration, and never by the model.
 
 | Status | When |
 |---|---|
@@ -64,17 +64,18 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 | `app/pipeline/pii.py` | Presidio, custom recognizers, placeholder map |
 | `app/pipeline/llm.py`, `mock_llm.py` | Model calls and offline stand-in |
 | `app/pipeline/vision.py` | Image redaction and receipt signature band |
-| `app/domains/meridian/rules.py` | Normalization and the status decision |
-| `app/domains/meridian/schemas.py` | Pydantic models and API contract |
-| `app/domains/meridian/prompt.py` | Extraction prompt |
+| `app/domains/configured.py` | Engine that runs a workflow: models, normalization, status decision |
+| `app/domains/meridian/config/` | Meridian's versioned configuration, including the prompt. Add a new file; never edit a released one |
+| `app/domains/meridian/grouping.py` | Grouping rules for uploads, using local OCR only |
 | `ui/streamlit_app.py` | Clerk page and trace panel |
-| `app/api/` | Product routes: tenancy, shipments and jobs, reviews and summaries |
+| `app/api/` | Product routes: tenancy, intake, shipments and jobs, reviews and summaries, customer API |
 | `app/worker/` | Celery jobs; only IDs go through the queue |
 | `web/` | Next.js product UI; see `web/README.md` |
 | `docs/ARCHITECTURE.md` | Six architecture diagrams, labelled Built or Target |
+| `docs/API.md` | Customer API and webhooks |
 | `scripts/` | Sample generation, `.eml` packets, evaluation |
 | `samples/` | 40 synthetic documents, test sheets, `.eml` packets |
-| `tests/` | Rules, placeholder map, upload, Presidio |
+| `tests/` | Automated tests for every layer |
 
 ## Commands
 
@@ -111,18 +112,18 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Last updated:** 2026-11-05.
 
-**On `main`:** the full pipeline, `.eml` route, Streamlit page, Clerk sign-in, tenant isolation, audit events, shipments, Celery jobs, human review, summaries and all Next.js screens (PRs through #62).
-
-**In review:** PR #63 (Check quantities retry) and this docs update.
+**On `main`:** the full pipeline, `.eml` route, Streamlit page, Clerk sign-in, tenant isolation, audit events, shipments, Celery jobs, human review, approvals, customer API and webhooks, versioned configuration, personal GSTIN masking, retention, trends, document grouping and all Next.js screens (PRs through #71). All 29 remaining issues are still open, because their screens or decisions are outstanding.
 
 **Verified by running**
-- **Real model (2026-11-04):** `gemini-3.1-flash-lite`, prompt `meridian-v2`: 100% on field, type and rule for the test sheet and holdout. The first holdout run was 94.0% on fields and 87.5% on rules, and its fixes mean the holdout is no longer unseen.
-- **Website (2026-11-04):** one real Clerk account signed in, created an organization and a shipment, uploaded documents and got an Incomplete result. This used SQLite and a local thread in place of Redis and Celery, kept outside the repo.
+- **Real model (2026-11-04):** `gemini-3.1-flash-lite`, prompt `meridian-v2`: 100% on field, type and rule for the test sheet and holdout. The first holdout run was 94.0% on fields and 87.5% on rules, and its fixes mean the holdout is no longer unseen. This predates the #68 configuration change, which kept the prompt and parsing identical on 40,000 random cases.
+- **Website (2026-11-04):** one real Clerk account signed in, created an organization and a shipment, uploaded documents and got one Incomplete result. This used SQLite and a local thread in place of Redis and Celery, kept outside the repo.
+- **Customer API (2026-11-05):** `scripts/customer_example.py` submitted S01 and received a signed webhook over real HTTP, using the mock model, a throwaway database and threads instead of Celery.
+- **Grouping (2026-11-05):** `scripts/evaluate_grouping.py`: 34 of 34 clean documents grouped and 0 wrong; 0 of 34 damaged documents grouped. The patterns were written after seeing these samples, so this isn't an unseen score.
 - **CI on every PR:** tests with PostgreSQL, including row-level security; the Docker stack, with a worker ping; the demo image; the web app. CI uses `LLM_PROVIDER=mock`.
 
 **Not verified**
-- Match, Mismatch, exceptions, review and dashboards on the website with a real account
-- A full check through Celery and Redis from the website
+- Match, Mismatch, exceptions, approvals, dashboards, API access, intake and retention on the website with a real account
+- A full check, a webhook, intake or the retention schedule through real Celery and Redis
 - Row-level security during a signed-in browser session
 - Any deployed environment, and accuracy on new unseen documents
 - That the LLM provider's terms exclude training on prompts
@@ -133,9 +134,19 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 3. **Slow OCR:** about 3 to 5 seconds per document on this machine, so check the timeout and hosting size before deploying.
 4. **Rate limit is per process and per client address:** behind Streamlit, all users share one address, so the limit protects the LLM quota rather than separating users.
 5. **Other invoice formats:** one uploaded invoice in a different format returned no shipper or quantity. That result hasn't been compared with its original.
+6. **Webhooks:** DNS rebinding isn't fully closed and secrets are stored readable, both noted for #33.
+7. **Intake:** files waiting for review are removed after about an hour, and the website limits a batch to about 11 MB.
 
 **Git safety:** stage files by name.
 
-**Next step:** finish testing the signed-in screens, choose a host for the live demo (#6, `docs/DEPLOY.md`), then re-score on new documents (#5).
+**Issues by what they need**
+- **Signed-in testing:** #15, #23-#30, #39, #40.
+- **A host choice:** #6, then #11 and #12.
+- **New documents and terms check:** #5.
+- **Test Clerk keys in GitHub:** #31.
+- **Decisions:** #32-#37, #41, #43, #44, and single sign-on in #45. #38 is built for uploads, and the mailbox is #37.
+- **Celery check:** #19 still needs the kill-a-worker test.
 
-**Open questions for the team:** submission deadline, live demo host, and when the AWS and decision issues (#32-#37, #41, #43, #44) should start.
+**Next step:** choose a host for the live demo (#6, `docs/DEPLOY.md`), test the signed-in screens, then re-score on new documents (#5).
+
+**Open questions for the team:** submission deadline, live demo host, and when the AWS and decision issues should start.

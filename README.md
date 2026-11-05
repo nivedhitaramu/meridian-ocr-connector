@@ -41,9 +41,9 @@ The design is a modular monolith with background workers and an API-first design
 
 | Layer | Today | Planned |
 |---|---|---|
-| Experience | Streamlit page and trace panel; Next.js shipments, comparison, exceptions, review, dashboard, observability and settings | Testing every screen end to end |
+| Experience | Streamlit page and trace panel; Next.js intake, shipments, comparison, exceptions, approvals, dashboard, observability, settings and API access | Testing every screen end to end |
 | Edge and security | CORS limit, file checks, rate limiting, Clerk sign-in, roles | HTTPS and WAF when deployed |
-| Control plane | FastAPI endpoints for extraction, organizations, shipments, jobs, review and audit | Customer API keys and webhooks |
+| Control plane | FastAPI endpoints for extraction, organizations, intake, shipments, jobs, approvals, audit, customer API keys and webhooks | Connectors and billing |
 | Data and messaging | PostgreSQL, Redis queue, local or S3-compatible temporary storage | SQS, if chosen during AWS work |
 | Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs | Scaling workers apart in production |
 | Observability | Spans, safe logs, counters, summary screen | Collector and dashboards |
@@ -312,8 +312,12 @@ pytest -q
 
 ## Roadmap
 
-1. **Fellowship release:** real accuracy numbers, privacy fixes, live demo.
-2. **Platform:** PostgreSQL, authentication, tenants, roles, background workers, Next.js.
-3. **Workflow automation:** email ingestion, document grouping, exception management.
-4. **Integrations:** ERP, warehouse and transport systems, webhooks.
-5. **General platform:** configurable schemas and rules for other industries.
+| Stage | Built | Still to do |
+|---|---|---|
+| Fellowship release | Real accuracy numbers on synthetic documents, privacy fixes | Live demo, score on new documents |
+| Platform | PostgreSQL, sign-in, tenants, roles, background workers, Next.js | End-to-end testing, AWS |
+| Workflow automation | Document grouping for uploads, exception management, approvals | Shipment mailbox |
+| Integrations | Customer API and signed webhooks | ERP, warehouse and transport connectors |
+| General platform | Versioned configuration, retention, trends | A second real workflow, single sign-on, billing |
+
+Built doesn't mean proven in production: nothing is deployed yet.
