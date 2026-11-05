@@ -27,6 +27,11 @@ const ACTION_LABELS: Record<string, string> = {
   "review.recorded": "Review recorded",
   "approval.submitted": "Sent for approval",
   "approval.steps_changed": "Approval steps changed",
+  "api_key.created": "API key created",
+  "api_key.rotated": "API key replaced",
+  "api_key.revoked": "API key revoked",
+  "webhook.added": "Webhook added",
+  "webhook.removed": "Webhook removed",
 };
 
 function FormMessage({ state, success }: { state: SettingsFormState; success?: string }) {

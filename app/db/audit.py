@@ -20,6 +20,11 @@ MEMBER_ROLE_CHANGED = "member.role_changed"
 SESSION_STARTED = "session.started"
 DOCUMENT_UPLOADED = "document.uploaded"  # for #20
 REVIEW_RECORDED = "review.recorded"  # for #27
+API_KEY_CREATED = "api_key.created"
+API_KEY_ROTATED = "api_key.rotated"
+API_KEY_REVOKED = "api_key.revoked"
+WEBHOOK_ADDED = "webhook.added"
+WEBHOOK_REMOVED = "webhook.removed"
 APPROVAL_SUBMITTED = "approval.submitted"
 APPROVAL_STEPS_CHANGED = "approval.steps_changed"
 

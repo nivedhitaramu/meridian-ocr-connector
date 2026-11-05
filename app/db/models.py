@@ -195,6 +195,48 @@ class ReviewAction(Base):
     created_at: Mapped[datetime] = _created_at()
 
 
+class ApiKey(Base):
+    """Only a hash is kept. The key itself is shown once, when it's created."""
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    name: Mapped[str] = mapped_column(String(100))
+    prefix: Mapped[str] = mapped_column(String(12))
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = _created_at()
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WebhookEndpoint(Base):
+    __tablename__ = "webhook_endpoints"
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    url: Mapped[str] = mapped_column(String(500))
+    secret: Mapped[str] = mapped_column(String(100))  # needed to sign each delivery, so it can't be a hash
+    created_at: Mapped[datetime] = _created_at()
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WebhookDelivery(Base):
+    """One per endpoint and job, so a job delivered twice by the queue can't send two events."""
+    __tablename__ = "webhook_deliveries"
+    __table_args__ = (UniqueConstraint("endpoint_id", "job_id", name="uq_webhook_delivery_once"),)
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    endpoint_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("webhook_endpoints.id", ondelete="CASCADE"))
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("processing_jobs.id", ondelete="CASCADE"))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    response_code: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _created_at()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
     __table_args__ = (Index("ix_audit_events_tenant_created", "organization_id", "created_at"),)
