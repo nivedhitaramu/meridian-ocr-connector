@@ -28,11 +28,6 @@ class RoleChange(BaseModel):
     role: Literal["admin", "supervisor", "clerk"]
 
 
-class NewMember(BaseModel):
-    email: str = Field(min_length=3, max_length=320)
-    role: Literal["admin", "supervisor", "clerk"] = "clerk"
-
-
 @router.post("/organizations", status_code=201)
 def create_organization(request: Request, body: NewOrganization, user: User = Depends(current_user),
                         session: Session = Depends(get_db)):
@@ -102,23 +97,6 @@ def change_role(request: Request, user_id: uuid.UUID, body: RoleChange, member: 
         audit.record(session, member.organization_id, member.user_id, audit.MEMBER_ROLE_CHANGED,
                      f"member:{user_id}:{body.role}", request_id_for(request))
         session.commit()
-    return {"user_id": str(user_id), "role": body.role}
-
-
-@router.post("/organization/members", status_code=201)
-def add_member(request: Request, body: NewMember, member: Member = Depends(require_role("admin")),
-               session: Session = Depends(get_db)):
-    """Adds someone who has already signed in once. There's no email invitation yet."""
-    user = session.scalar(select(User).where(func.lower(User.email) == body.email.strip().lower()))
-    if user is None:
-        raise NotFound
-    user_id = user.id
-    if session.get(OrganizationMember, (member.organization_id, user_id)) is not None:
-        return JSONResponse(status_code=409, content={"error": "This person is already a member."})
-    session.add(OrganizationMember(organization_id=member.organization_id, user_id=user_id, role=body.role))
-    audit.record(session, member.organization_id, member.user_id, audit.MEMBER_ADDED,
-                 f"member:{user_id}:{body.role}", request_id_for(request))
-    session.commit()
     return {"user_id": str(user_id), "role": body.role}
 
 

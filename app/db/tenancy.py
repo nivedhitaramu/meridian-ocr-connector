@@ -18,6 +18,12 @@ def set_scope(session: Session, user_id: uuid.UUID | None, organization_id: uuid
     _apply(session, session.connection())  # also covers a transaction that's already open
 
 
+def set_invitee(session: Session, email: str) -> None:
+    """Lets this transaction read invitations to the signed-in email, before the person belongs to anything."""
+    if session.connection().dialect.name == "postgresql":
+        session.execute(text("SELECT set_config('app.invitee_email', :email, true)"), {"email": email})
+
+
 def _apply(session: Session, connection: Connection) -> None:
     scope = session.info.get("scope")
     if scope is None or connection.dialect.name != "postgresql":

@@ -13,8 +13,8 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from ..db import audit
-from ..db.models import (Document, ExtractionResult, IntakeItem, Organization, ProcessingJob, ReviewAction, Shipment,
-                         VerificationResult, WebhookDelivery)
+from ..db.models import (Document, ExtractionResult, IntakeItem, Organization, OrganizationInvitation, ProcessingJob,
+                         ReviewAction, Shipment, VerificationResult, WebhookDelivery)
 from ..db.session import new_session
 from ..db.tenancy import set_scope
 from ..ingestion.storage import store
@@ -59,7 +59,22 @@ def apply(organization_id: uuid.UUID, days: int, now: datetime | None = None) ->
     return len(expired)
 
 
+def drop_expired_invitations() -> None:
+    """These hold an email address, and always go once expired, whatever the organization's retention setting."""
+    with new_session() as session:
+        set_scope(session, None)
+        organizations = list(session.scalars(select(Organization.id)))
+        session.commit()
+        for organization_id in organizations:
+            set_scope(session, None, organization_id)
+            session.execute(delete(OrganizationInvitation).where(
+                OrganizationInvitation.organization_id == organization_id,
+                OrganizationInvitation.expires_at <= datetime.now(timezone.utc)))
+            session.commit()
+
+
 def apply_all() -> int:
+    drop_expired_invitations()
     with new_session() as session:
         set_scope(session, None)
         settings = session.execute(select(Organization.id, Organization.retention_days).where(

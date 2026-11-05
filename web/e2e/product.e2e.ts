@@ -29,14 +29,31 @@ test("an admin creates an organization and adds their team", async ({ browser })
   await alice.getByRole("button", { name: "Create organization" }).click();
   await expect(alice.getByRole("heading", { name: "Meridian Freight" })).toBeVisible();
 
-  for (const [person, email, role] of [[bob, "bob@example.com", "clerk"], [cara, "cara@example.com", "supervisor"]] as const) {
-    await person.goto("/workspace"); // people must sign in once before they can be added
-    await expect(person.getByLabel("Organization name")).toBeVisible();
+  const invite = async (email: string, role: string) => {
     await alice.goto("/workspace/settings");
     await alice.getByLabel("Email").fill(email);
     await alice.getByLabel("Role", { exact: true }).selectOption(role);
-    await alice.getByRole("button", { name: /add/i }).click();
+    await alice.getByRole("button", { name: "Invite", exact: true }).click();
     await expect(alice.getByRole("cell", { name: email, exact: true })).toBeVisible();
+  };
+
+  // A cancelled invitation disappears, and someone invited has no access until they accept.
+  await invite("cara@example.com", "clerk");
+  await alice.getByRole("button", { name: "Cancel invitation for cara@example.com" }).click();
+  await expect(alice.getByRole("cell", { name: "cara@example.com", exact: true })).toHaveCount(0);
+  await cara.goto("/workspace");
+  await expect(cara.getByLabel("Organization name")).toBeVisible();
+  await expect(cara.getByRole("button", { name: /Accept invitation/ })).toHaveCount(0);
+
+  for (const [person, email, role] of [[bob, "bob@example.com", "clerk"], [cara, "cara@example.com", "supervisor"]] as const) {
+    await invite(email, role);
+    await person.goto("/workspace");
+    await expect(person.getByText("sent by alice@example.com")).toBeVisible();
+    await expect(person.getByRole("heading", { name: "Meridian Freight" })).toHaveCount(0);
+    await expectAccessible(person);
+    await person.getByRole("button", { name: "Accept invitation to Meridian Freight" }).click();
+    await expect(person.getByRole("heading", { name: "Meridian Freight" })).toBeVisible();
+    await expect(person.getByRole("button", { name: /Accept invitation/ })).toHaveCount(0);
   }
 });
 

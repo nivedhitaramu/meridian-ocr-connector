@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  addMember,
+  inviteMember,
   addReview,
   ApiError,
   changeRole,
@@ -76,9 +76,10 @@ describe("api client", () => {
     });
   });
 
-  it("adds a member by email and role", async () => {
-    const mock = respond(201, { user_id: "1", role: "clerk" });
-    await addMember(context(mock), "a@example.com", "clerk");
+  it("invites a member by email and role", async () => {
+    const mock = respond(201, { id: "1", email: "a@example.com", role: "clerk", expires_at: "", expired: false });
+    await inviteMember(context(mock), "a@example.com", "clerk");
+    expect(sent(mock).url).toBe("http://api.test/v1/organization/invitations");
     expect(sent(mock).init.method).toBe("POST");
     expect(JSON.parse(sent(mock).init.body as string)).toEqual({ email: "a@example.com", role: "clerk" });
   });

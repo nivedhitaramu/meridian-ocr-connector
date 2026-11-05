@@ -65,11 +65,28 @@ export const renameOrganization = (context: ApiContext, name: string) =>
     body: JSON.stringify({ name }),
   });
 
-export const addMember = (context: ApiContext, email: string, role: Role) =>
-  request<{ user_id: string; role: Role }>(context, "/v1/organization/members", {
+export type Invitation = { id: string; email: string; role: Role; expires_at: string; expired: boolean };
+
+export const listInvitations = (context: ApiContext) => request<Invitation[]>(context, "/v1/organization/invitations");
+
+export const inviteMember = (context: ApiContext, email: string, role: Role) =>
+  request<Invitation>(context, "/v1/organization/invitations", {
     method: "POST",
     body: JSON.stringify({ email, role }),
   });
+
+export const cancelInvitation = (context: ApiContext, id: string) =>
+  request<void>(context, `/v1/organization/invitations/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+export type MyInvitation = { id: string; organization_name: string; invited_by: string | null; role: Role; expires_at: string };
+
+export const listMyInvitations = (context: ApiContext) => request<MyInvitation[]>(context, "/v1/invitations");
+
+export const acceptInvitation = (context: ApiContext, id: string) =>
+  request<{ organization_id: string; role: Role }>(context, `/v1/invitations/${encodeURIComponent(id)}/accept`, { method: "POST" });
+
+export const declineInvitation = (context: ApiContext, id: string) =>
+  request<void>(context, `/v1/invitations/${encodeURIComponent(id)}/decline`, { method: "POST" });
 
 export const changeRole = (context: ApiContext, userId: string, role: Role) =>
   request<{ user_id: string; role: Role }>(context, `/v1/organization/members/${encodeURIComponent(userId)}`, {

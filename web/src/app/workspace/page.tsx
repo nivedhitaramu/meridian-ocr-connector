@@ -4,9 +4,10 @@ import { EmptyState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ApiError, getMe, getOrganization, listMembers, type Member } from "@/lib/api";
+import { ApiError, getMe, getOrganization, listMembers, listMyInvitations, type Member } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
+import { MyInvitations } from "./my-invitations";
 import { StartOrganizationForm } from "./start-organization-form";
 
 async function membersIfAllowed(organizationId: string): Promise<Member[] | null> {
@@ -20,14 +21,20 @@ async function membersIfAllowed(organizationId: string): Promise<Member[] | null
 
 export default async function WorkspacePage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
   const { org } = await searchParams;
-  const me = await getMe(await apiContext());
+  const context = await apiContext();
+  const me = await getMe(context);
+  const invitations = await listMyInvitations(context);
 
   if (me.memberships.length === 0) {
     return (
-      <EmptyState title="Create your organization">
-        <p>Your shipments and team live in an organization. You become its first admin.</p>
-        <StartOrganizationForm />
-      </EmptyState>
+      <div className="space-y-6">
+        <MyInvitations invitations={invitations} />
+        <EmptyState title="Create your organization">
+          <p>Your shipments and team live in an organization. You become its first admin.</p>
+          <p>Joining a team instead? Ask an admin there to invite {me.email}.</p>
+          <StartOrganizationForm />
+        </EmptyState>
+      </div>
     );
   }
 
@@ -39,6 +46,7 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
     return (
       <section className="space-y-4">
         <h1 className="text-2xl font-semibold tracking-tight">Choose an organization</h1>
+        <MyInvitations invitations={invitations} />
         <ul className="divide-y rounded-lg border">
           {organizations.map((o) => (
             <li key={o.id}>
@@ -63,6 +71,8 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
         <h1 className="text-2xl font-semibold tracking-tight text-balance">{organization.name}</h1>
         <p className="text-muted-foreground text-sm">Signed in as {me.email}</p>
       </header>
+
+      <MyInvitations invitations={invitations} />
 
       <Card>
         <CardHeader>
