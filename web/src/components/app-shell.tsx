@@ -1,5 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
-import { Activity, Building2, LayoutDashboard, Package, Settings, TriangleAlert } from "lucide-react";
+import { Activity, Building2, Inbox, KeyRound, LayoutDashboard, Package, Settings, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,10 +7,12 @@ import type { ReactNode } from "react";
 const NAVIGATION = [
   { href: "/workspace", label: "Workspace", icon: Building2 },
   { href: "/workspace/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/workspace/intake", label: "Intake", icon: Inbox },
   { href: "/workspace/shipments", label: "Shipments", icon: Package },
   { href: "/workspace/exceptions", label: "Exceptions", icon: TriangleAlert },
   { href: "/workspace/observability", label: "Observability", icon: Activity },
   { href: "/workspace/settings", label: "Settings", icon: Settings },
+  { href: "/workspace/api-access", label: "API access", icon: KeyRound },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

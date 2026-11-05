@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from ..core import config
 from ..core.errors import CLIENT_MESSAGE
 from ..db import audit
+from ..domains import registry
 from ..db.models import Document, ExtractionResult, ProcessingJob, Shipment, VerificationResult
 from ..db.session import get_db
 from ..ingestion.storage import new_key, store
@@ -25,6 +26,12 @@ router = APIRouter(prefix="/v1")
 
 class NewShipment(BaseModel):
     reference: str = Field(min_length=1, max_length=100)
+
+
+def contains(words: str) -> str:
+    """A LIKE pattern that treats % and _ in the search box as ordinary characters."""
+    escaped = words.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 def _shipment(session: Session, member: Member, shipment_id: uuid.UUID) -> Shipment:
@@ -53,10 +60,15 @@ def create_shipment(body: NewShipment, member: Member = Depends(current_member),
 
 
 @router.get("/shipments")
-def list_shipments(limit: int = Query(50, ge=1, le=200), member: Member = Depends(current_member),
+def list_shipments(limit: int = Query(50, ge=1, le=200), q: str | None = Query(None, max_length=100),
+                   status: str | None = Query(None, max_length=30), member: Member = Depends(current_member),
                    session: Session = Depends(get_db)):
-    rows = session.scalars(select(Shipment).where(Shipment.organization_id == member.organization_id)
-                           .order_by(Shipment.created_at.desc(), Shipment.id).limit(limit))
+    query = select(Shipment).where(Shipment.organization_id == member.organization_id)
+    if q and q.strip():
+        query = query.where(Shipment.reference.ilike(contains(q), escape="\\"))
+    if status:
+        query = query.where(Shipment.status == status)
+    rows = session.scalars(query.order_by(Shipment.created_at.desc(), Shipment.id).limit(limit))
     return [_shipment_json(s) for s in rows]
 
 
@@ -132,6 +144,15 @@ def start_job(shipment_id: uuid.UUID, idempotency_key: str | None = Header(defau
     return _accepted(job)
 
 
+@router.get("/configurations/{version}")
+def get_configuration(version: str, _: Member = Depends(current_member)):
+    """The fields and rules behind a saved result. These are product settings and hold no customer data."""
+    configuration = registry.configuration(version)
+    if configuration is None:
+        raise NotFound
+    return configuration
+
+
 @router.get("/jobs/{job_id}")
 def get_job(job_id: uuid.UUID, member: Member = Depends(current_member), session: Session = Depends(get_db)):
     job = session.scalar(select(ProcessingJob).where(
@@ -157,5 +178,6 @@ def get_job(job_id: uuid.UUID, member: Member = Depends(current_member), session
         "attempts": job.attempts, "error_class": job.error_class,
         "timings_ms": job.timings_ms, "entity_counts": job.entity_counts,
         "check": {"status": check.status, "reason": check.reason} if check else None,
+        "config_version": check.config_version if check else None,
         "documents": documents,
     }

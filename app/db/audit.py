@@ -20,6 +20,19 @@ MEMBER_ROLE_CHANGED = "member.role_changed"
 SESSION_STARTED = "session.started"
 DOCUMENT_UPLOADED = "document.uploaded"  # for #20
 REVIEW_RECORDED = "review.recorded"  # for #27
+API_KEY_CREATED = "api_key.created"
+API_KEY_ROTATED = "api_key.rotated"
+API_KEY_REVOKED = "api_key.revoked"
+WEBHOOK_ADDED = "webhook.added"
+WEBHOOK_REMOVED = "webhook.removed"
+INTAKE_UPLOADED = "intake.uploaded"
+INTAKE_GROUPED = "intake.grouped"
+INTAKE_ASSIGNED = "intake.assigned"
+INTAKE_DISCARDED = "intake.discarded"
+RETENTION_CHANGED = "retention.changed"
+RETENTION_APPLIED = "retention.applied"
+APPROVAL_SUBMITTED = "approval.submitted"
+APPROVAL_STEPS_CHANGED = "approval.steps_changed"
 
 
 def record(session: Session, organization_id: uuid.UUID, actor_id: uuid.UUID | None, action: str,

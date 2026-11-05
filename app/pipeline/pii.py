@@ -22,7 +22,7 @@ MASKED_ENTITIES = [
 # Placeholder names in the prompt. Many types collapse to a few readable tokens.
 _TOKEN_NAME = {
     "IN_MOBILE": "PHONE", "PHONE_NUMBER": "PHONE", "EMAIL_ADDRESS": "EMAIL",
-    "LOCATION": "ADDRESS", "IN_AADHAAR": "GOV_ID", "IN_PAN": "GOV_ID",
+    "LOCATION": "ADDRESS", "IN_AADHAAR": "GOV_ID", "IN_PAN": "GOV_ID", "IN_GSTIN_PERSONAL": "GOV_ID",
 }
 
 # spaCy often tags company names as PERSON. If a flagged span looks like a company, keep it.
@@ -47,12 +47,16 @@ PLACEHOLDER_RE = re.compile(r"<[A-Z_]+_\d+>")
 # People are still masked here: only LOCATION spans get this exception.
 _PARTY_LABEL = re.compile(r"\b(?:exporter|shipper|consignee|receiver|ship\s+to|sold\s+to|bill\s+to)\s*[:\-]\s*$", re.IGNORECASE)
 
+# A GSTIN holds its owner's PAN. In a person's or family's GSTIN, that's personal data. A company's stays visible.
+_PERSONAL_GSTIN = r"\b\d{2}[A-Z]{3}[PH][A-Z]\d{4}[A-Z][0-9A-Z]Z[0-9A-Z]\b"
+
 # Shapes that must never leave the machine. Checked after masking, independently of Presidio.
 _RESIDUAL_PATTERNS = {
     "EMAIL_ADDRESS": re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"),
     "IN_MOBILE": re.compile(r"(?<!\d)(?:\+91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}(?!\d)"),
     "IN_AADHAAR": re.compile(r"(?<!\d)[2-9]\d{3}[ -]?\d{4}[ -]?\d{4}(?!\d)"),
     "IN_PAN": re.compile(r"\b[A-Z]{3}[ABCFGHLJPT][A-Z]\d{4}[A-Z]\b"),
+    "IN_GSTIN_PERSONAL": re.compile(_PERSONAL_GSTIN),
 }
 
 
@@ -182,6 +186,7 @@ def _analyzer():
         pattern("IN_AADHAAR", r"(?<!\d)[2-9]\d{3}[ -]?\d{4}[ -]?\d{4}(?!\d)", 0.6,
                 ["aadhaar", "aadhar", "uid", "uidai"]),
         pattern("IN_PAN", r"\b[A-Z]{3}[ABCFGHLJPT][A-Z]\d{4}[A-Z]\b", 0.8, ["pan", "income tax"]),
+        pattern("IN_GSTIN_PERSONAL", _PERSONAL_GSTIN, 0.85, ["gstin", "gst"]),
         pattern("IFSC", r"\b[A-Z]{4}0[A-Z0-9]{6}\b", 0.7, ["ifsc", "bank", "branch"]),
         # Bank accounts need context words, or every long reference number would be masked.
         pattern("BANK_ACCOUNT", r"(?<!\d)\d{9,18}(?!\d)", 0.3,

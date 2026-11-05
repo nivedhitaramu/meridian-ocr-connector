@@ -57,6 +57,8 @@ class Organization(Base):
     id: Mapped[uuid.UUID] = _id()
     name: Mapped[str] = mapped_column(String(200))
     plan: Mapped[str] = mapped_column(String(50), default="trial")
+    approval_steps: Mapped[list | None] = mapped_column(JsonValue)  # empty means one supervisor approval
+    retention_days: Mapped[int | None] = mapped_column(Integer)  # empty means records are kept
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -131,6 +133,7 @@ class ProcessingJob(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     error_class: Mapped[str | None] = mapped_column(String(50))
     timings_ms: Mapped[dict | None] = mapped_column(JsonValue)
+    used_vision_fallback: Mapped[bool | None]
     entity_counts: Mapped[dict | None] = mapped_column(JsonValue)
     created_at: Mapped[datetime] = _created_at()
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -169,6 +172,7 @@ class VerificationResult(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     status: Mapped[str] = mapped_column(String(20))
     reason: Mapped[str] = mapped_column(String(300))  # the rule engine's template, never model text
+    config_version: Mapped[str | None] = mapped_column(String(40))
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -190,6 +194,65 @@ class ReviewAction(Base):
     action: Mapped[str] = mapped_column(String(50))
     reason: Mapped[str] = mapped_column(String(300))
     correction: Mapped[dict | None] = mapped_column(JsonValue)  # saved beside the model's result, never over it
+    created_at: Mapped[datetime] = _created_at()
+
+
+class ApiKey(Base):
+    """Only a hash is kept. The key itself is shown once, when it's created."""
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    name: Mapped[str] = mapped_column(String(100))
+    prefix: Mapped[str] = mapped_column(String(12))
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = _created_at()
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WebhookEndpoint(Base):
+    __tablename__ = "webhook_endpoints"
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    url: Mapped[str] = mapped_column(String(500))
+    secret: Mapped[str] = mapped_column(String(100))  # needed to sign each delivery, so it can't be a hash
+    created_at: Mapped[datetime] = _created_at()
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WebhookDelivery(Base):
+    """One per endpoint and job, so a job delivered twice by the queue can't send two events."""
+    __tablename__ = "webhook_deliveries"
+    __table_args__ = (UniqueConstraint("endpoint_id", "job_id", name="uq_webhook_delivery_once"),)
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    endpoint_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("webhook_endpoints.id", ondelete="CASCADE"))
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("processing_jobs.id", ondelete="CASCADE"))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    response_code: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _created_at()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class IntakeItem(Base):
+    """One file from a batch. It holds a reference and a reason code, never document text or a filename."""
+    __tablename__ = "intake_items"
+    __table_args__ = (Index("ix_intake_items_batch", "batch_id"), Index("ix_intake_items_tenant_status", "organization_id", "status"))
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    batch_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    storage_key: Mapped[str | None] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20), default="queued")
+    document_type: Mapped[str | None] = mapped_column(String(50))
+    reference: Mapped[str | None] = mapped_column(String(100))
+    reason: Mapped[str | None] = mapped_column(String(40))
+    shipment_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("shipments.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = _created_at()
 
 

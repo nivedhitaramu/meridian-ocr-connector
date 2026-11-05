@@ -35,6 +35,12 @@ def test_sample_companies_stay_visible(name):
     assert pii._looks_like_company_or_label(name)
 
 
+def test_personal_gstin_is_caught_but_a_company_gstin_is_not():
+    assert pii.residual_types("GSTIN 29ABCPE1234F1Z5") == {"IN_GSTIN_PERSONAL"}
+    assert pii.residual_types("GSTIN 29ABCHE1234F1Z5") == {"IN_GSTIN_PERSONAL"}
+    assert pii.residual_types("GSTIN 29ABCCE1234F1Z5") == set()
+
+
 def test_residual_scan_finds_shapes_and_ignores_placeholders():
     assert pii.residual_types("Call 98450 12345") == {"IN_MOBILE"}
     assert pii.residual_types("a.b@example.com") == {"EMAIL_ADDRESS"}

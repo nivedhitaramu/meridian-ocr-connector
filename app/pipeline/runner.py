@@ -79,6 +79,7 @@ def run(files: list[bytes]):
                     ocr_engine="tesseract",
                     used_vision_fallback=any(d.used_vision_fallback for d in docs),
                     model=", ".join(sorted(models)), prompt_version=domain.prompt_version,
+                    config_version=domain.config_version,
                     timings_ms={k: tr.timings_ms.get(k, 0) for k in ("ocr", "pii", "llm", "rule")},
                 ),
             )

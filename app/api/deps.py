@@ -1,21 +1,36 @@
 """Who is calling, and which organization they're acting in. Product routes depend on these."""
 from __future__ import annotations
 
+import hashlib
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from fastapi import Depends, Request
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from ..core import auth
+from ..core import auth, config
+from ..core.rate_limit import RateLimiter
 from ..db import audit, users
-from ..db.models import MEMBER_ROLES, User
+from ..db.models import ApiKey, MEMBER_ROLES, OrganizationMember, User
 from ..db.session import get_db
 from ..db.tenancy import set_scope
 
 
 class NotFound(Exception):
     """Also used for another tenant's records, so a caller can't tell whether they exist."""
+
+
+class RateLimited(Exception):
+    """This API key has made too many requests this minute."""
+
+
+_key_limiter = RateLimiter(config.API_KEY_RATE_LIMIT_PER_MINUTE)
+
+
+def hash_key(key: str) -> str:
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 class Forbidden(Exception):
@@ -43,11 +58,37 @@ def current_user(request: Request, session: Session = Depends(get_db)) -> User:
     return users.user_for(session, identity)
 
 
-def current_member(request: Request, user: User = Depends(current_user), session: Session = Depends(get_db)) -> Member:
-    """The organization comes from the caller's memberships, never from a request body.
+def _member_for_key(request: Request, session: Session, presented: str) -> Member:
+    """A key acts for one organization as a clerk, so it can't manage members, keys or approvals."""
+    digest = hash_key(presented)
+    set_scope(session, None)
+    if session.connection().dialect.name == "postgresql":
+        session.execute(text("SELECT set_config('app.api_key_hash', :digest, true)"), {"digest": digest})
+    key = session.scalar(select(ApiKey).where(ApiKey.key_hash == digest, ApiKey.revoked_at.is_(None)))
+    if key is None or key.created_by is None:
+        raise auth.AuthError("api_key_invalid")
+    organization_id, user_id = key.organization_id, key.created_by
+    set_scope(session, user_id, organization_id)
+    # The person who made the key must still belong, so removing them also stops their keys.
+    if session.get(OrganizationMember, (organization_id, user_id)) is None:
+        raise auth.AuthError("api_key_owner_removed")
+    if not _key_limiter.allow(str(key.id)):
+        raise RateLimited
+    key.last_used_at = datetime.now(timezone.utc)
+    session.commit()
+    set_scope(session, user_id, organization_id)
+    return Member(user_id=user_id, organization_id=organization_id, role="clerk")
+
+
+def current_member(request: Request, session: Session = Depends(get_db)) -> Member:
+    """The organization comes from the caller's memberships or API key, never from a request body.
 
     X-Organization-Id picks one when a person belongs to several, and must be one of theirs.
     """
+    presented = request.headers.get("X-API-Key")
+    if presented:
+        return _member_for_key(request, session, presented)
+    user = current_user(request, session)
     user_id = user.id
     set_scope(session, user_id)
     rows = users.memberships(session, user)
@@ -64,13 +105,15 @@ def current_member(request: Request, user: User = Depends(current_user), session
     return member
 
 
+ROLE_RANKS = {"clerk": 0, "supervisor": 1, "admin": 2}
+assert set(ROLE_RANKS) == set(MEMBER_ROLES)
+
+
 def require_role(minimum: str):
     """Roles rank clerk, then supervisor, then admin."""
-    ranks = {"clerk": 0, "supervisor": 1, "admin": 2}
-    assert set(ranks) == set(MEMBER_ROLES)
 
     def check(member: Member = Depends(current_member)) -> Member:
-        if ranks[member.role] < ranks[minimum]:
+        if ROLE_RANKS[member.role] < ROLE_RANKS[minimum]:
             raise Forbidden
         return member
     return check

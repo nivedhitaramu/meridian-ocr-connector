@@ -1,0 +1,143 @@
+{
+  "version": "meridian-1",
+  "domain": "meridian",
+  "prompt_version": "meridian-v2",
+  "system_prompt": "You classify one document and fill a JSON object.\nAllowed document_type values: Commercial invoice, Packing list, Delivery receipt.\nFields: invoice_number, shipper_name, receiver_name, shipment_date, total_quantity, total_weight_kg.\ninvoice_number is the invoice or shipment reference as printed.\nshipper_name and receiver_name are company names, never a person.\ntotal_weight_kg is the printed total weight number; put its unit (kg or lb) in weight_unit.\nAlso return quantity_totals: each overall total printed for the whole shipment, as {\"value\", \"unit\"}. Never include item rows.\nThe text uses placeholders such as <PERSON_1>.\nCopy placeholders unchanged. Do not guess the hidden value.\nIf a field is not on the page, use null.\nReturn only JSON: {\"document_type\", \"fields\": {...}, \"quantity_totals\": [...], \"weight_unit\"}.",
+  "image_instruction": "Read this redacted shipping document.",
+  "document_types": {
+    "commercial_invoice": [
+      "commercial invoice",
+      "commercial_invoice",
+      "invoice"
+    ],
+    "packing_list": [
+      "packing list",
+      "packing_list"
+    ],
+    "delivery_receipt": [
+      "delivery receipt",
+      "delivery_receipt",
+      "proof of delivery"
+    ],
+    "unknown": []
+  },
+  "fields": {
+    "invoice_number": "text",
+    "shipper_name": "text",
+    "receiver_name": "text",
+    "shipment_date": "date",
+    "total_quantity": "count",
+    "total_weight_kg": "number"
+  },
+  "privacy": {
+    "reference_fields": [
+      "invoice_number"
+    ],
+    "party_fields": [
+      "shipper_name",
+      "receiver_name"
+    ],
+    "signed_document": "delivery\\s+receipt|proof\\s+of\\s+delivery|\\bPOD\\b|received\\s+by|consignee\\s+sign",
+    "unsigned_title": "commercial\\s+invoice|packing\\s+list"
+  },
+  "units": {
+    "carton": [
+      "carton",
+      "cartons",
+      "ctn",
+      "ctns",
+      "ctn.",
+      "ctns."
+    ],
+    "piece": [
+      "piece",
+      "pieces",
+      "pc",
+      "pcs",
+      "pcs.",
+      "nos",
+      "nos.",
+      "no",
+      "units",
+      "unit",
+      "ea",
+      "each"
+    ],
+    "package": [
+      "package",
+      "packages",
+      "pkg",
+      "pkgs",
+      "pkg.",
+      "pkgs.",
+      "packs",
+      "pack"
+    ],
+    "pallet": [
+      "pallet",
+      "pallets",
+      "plt",
+      "plts"
+    ],
+    "case": [
+      "case",
+      "cases",
+      "cs"
+    ],
+    "box": [
+      "box",
+      "boxes",
+      "bx"
+    ],
+    "bag": [
+      "bag",
+      "bags"
+    ],
+    "roll": [
+      "roll",
+      "rolls"
+    ],
+    "drum": [
+      "drum",
+      "drums"
+    ]
+  },
+  "primary_units": [
+    "carton",
+    "package",
+    "case",
+    "box",
+    "pallet",
+    "bag",
+    "drum",
+    "roll"
+  ],
+  "weight": {
+    "field": "total_weight_kg",
+    "convert_from": [
+      "lb",
+      "lbs",
+      "pound",
+      "pounds"
+    ],
+    "factor": 0.45359237
+  },
+  "check": {
+    "type": "compare_totals",
+    "field": "total_quantity",
+    "left": "commercial_invoice",
+    "right": "packing_list",
+    "not_applicable_alone": "delivery_receipt",
+    "reasons": {
+      "not_applicable": "Only a delivery receipt was provided; there is no quantity to compare.",
+      "none_recognized": "No commercial invoice or packing list was recognized.",
+      "missing_left": "Packing list provided without a commercial invoice.",
+      "missing_right": "Commercial invoice provided without a packing list.",
+      "too_many": "More than one invoice or packing list; upload one pair at a time.",
+      "unreadable": "A total quantity could not be read; check the documents by hand.",
+      "unit_clash": "Units differ: the invoice counts {left_unit} and the packing list counts {right_unit}.",
+      "match": "Invoice quantity equals packing-list quantity ({left_value}{unit}).",
+      "differ": "Invoice quantity {left_value} differs from packing-list quantity {right_value}{unit}."
+    }
+  }
+}

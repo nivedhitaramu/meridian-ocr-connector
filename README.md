@@ -158,16 +158,25 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/organization/members` | Add someone who has already signed in; admin |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
 | `DELETE /v1/organization/members/{user_id}` | Remove a member; admin |
-| `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments |
+| `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments; `q` searches references and `status` filters |
 | `GET /v1/shipments/{id}` | One shipment, with its documents and jobs |
+| `GET /v1/jobs` | Processing history; `q` searches references and `status` filters |
+| `POST /v1/intake`, `GET /v1/intake` | Upload up to 20 documents together; clear matches join a shipment, and the rest wait for review |
+| `POST /v1/intake/items/{id}/assign`, `DELETE /v1/intake/items/{id}` | A person's decision on an uncertain document |
 | `POST /v1/shipments/{id}/documents` | Upload a document for a later job |
 | `POST /v1/shipments/{id}/jobs` | Start a background check; returns 202 and supports `Idempotency-Key` |
 | `GET /v1/jobs/{id}` | Job status and saved results |
+| `GET /v1/configurations/{version}` | The fields and rules behind a saved result |
 | `GET /v1/exceptions` | Open mismatches and manual review cases |
 | `GET`, `POST /v1/jobs/{id}/reviews` | Read reviews, or record one with a reason; supervisor or admin |
+| `POST /v1/jobs/{id}/submit` | Ask for approval on an exception; any member |
+| `PATCH /v1/organization/approval-steps` | Choose who must approve, in order; admin |
 | `GET /v1/analytics/summary` | Counts for the organization |
+| `GET /v1/analytics/trends` | Daily exceptions, suppliers and human corrections from saved data |
+| `PATCH /v1/organization/retention` | Choose how long shipment records are kept; admin |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
+| `/v1/api-keys`, `/v1/webhooks` | Customer API keys and signed webhooks; admin. See [docs/API.md](docs/API.md) |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 
@@ -188,6 +197,8 @@ To set it up:
 **Organizations:** a person's organization comes from their memberships, never a request body. `X-Organization-Id` picks one when they belong to several. Another organization's records return 404, and PostgreSQL row-level security enforces this even if a query forgets its filter.
 
 ## Business rules
+
+Meridian's document types, fields, units, prompt and reasons live in [`app/domains/meridian/config/`](app/domains/meridian/config/). The engine in `app/domains/configured.py` turns that file into a deterministic check, and the model never decides a status. A released version is never edited: a change goes in a new file, and each saved result names the version that produced it.
 
 | Status | When |
 |---|---|
@@ -211,15 +222,17 @@ To set it up:
 
 | Rule | Where |
 |---|---|
-| Presidio runs before any network call, with Indian mobile, Aadhaar-shaped, PAN, bank account, IFSC, policy and roll number recognizers | `app/pipeline/pii.py` |
+| Presidio runs before any network call, with Indian mobile, Aadhaar-shaped, PAN, personal GSTIN, bank account, IFSC, policy and roll number recognizers | `app/pipeline/pii.py` |
 | Same person on two documents gets one placeholder; the map stays in memory and is cleared in `finally` | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
-| Masked text with a leftover email, mobile, Aadhaar or PAN shape blocks the model call, and model output is scrubbed | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
+| Masked text with a leftover email, mobile, Aadhaar, PAN or personal GSTIN shape blocks the model call, and model output is scrubbed | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
 | A receipt's bottom band is masked in the text path too | `app/pipeline/vision.py` |
 | Only redacted images can go to a vision model; an unclear document type or no word boxes means manual review | `app/pipeline/vision.py`, `app/pipeline/llm.py` |
 | File bytes checked, random names, deleted after the request | `app/ingestion/upload.py` |
 | Telemetry uses an allow-list of keys | `app/core/telemetry.py` |
 | Clients get a generic error; CORS is limited to our page | `app/main.py` |
 | API key from the environment; `.env` is git-ignored | `.env.example` |
+
+**Retention:** records are kept unless an admin sets a limit of 7 to 3,650 days in **Settings**. A nightly task then deletes older shipments, their documents and results, and keeps the audit trail.
 
 **Known gap:** street lines aren't reliably masked, so a personal address on a shipment that isn't company-to-company could reach the model.
 

@@ -20,6 +20,7 @@ from ..db.session import new_session
 from ..db.tenancy import set_scope
 from ..ingestion.storage import store
 from ..pipeline import runner
+from . import queue, webhooks
 
 log = logging.getLogger("meridian")
 
@@ -57,8 +58,15 @@ def _finish(session: Session, job: ProcessingJob, documents: list[Document], sta
     for document in documents:
         document.processing_status = status
     _delete_files(documents)
+    deliveries = webhooks.create_deliveries(session, job)
+    organization_id = job.organization_id
     session.commit()
     log.info(json.dumps({"level": "info", "stage": "job.end", "outcome": status, "error_class": error_class}))
+    for delivery_id in deliveries:
+        try:
+            queue.enqueue_webhook(organization_id, delivery_id)
+        except Exception:  # the job's result is safe; a broker outage must not fail it
+            log.warning(json.dumps({"level": "warning", "stage": "webhook", "error_class": "queue_unavailable"}))
 
 
 def _save_results(session: Session, job: ProcessingJob, documents: list[Document], response) -> None:
@@ -71,9 +79,11 @@ def _save_results(session: Session, job: ProcessingJob, documents: list[Document
             quantity_unit=result.get("quantity_unit"), prompt_version=data["pipeline"].get("prompt_version"),
         ))
     session.add(VerificationResult(organization_id=job.organization_id, job_id=job.id,
-                                   status=data["check"]["status"], reason=data["check"]["reason"]))
+                                   status=data["check"]["status"], reason=data["check"]["reason"],
+                                   config_version=data["pipeline"].get("config_version")))
     job.timings_ms = data["pipeline"].get("timings_ms")
     job.entity_counts = data["pii"].get("entity_counts")
+    job.used_vision_fallback = bool(data["pipeline"].get("used_vision_fallback"))
     shipment = session.get(Shipment, job.shipment_id)
     shipment.status = "checked"
 

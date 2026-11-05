@@ -52,7 +52,8 @@ def create_organization(request: Request, body: NewOrganization, user: User = De
 @router.get("/organization")
 def current_organization(member: Member = Depends(current_member), session: Session = Depends(get_db)):
     organization = session.get(Organization, member.organization_id)
-    return {"id": str(organization.id), "name": organization.name, "plan": organization.plan, "role": member.role}
+    return {"id": str(organization.id), "name": organization.name, "plan": organization.plan, "role": member.role,
+            "approval_steps": organization.approval_steps or ["supervisor"], "retention_days": organization.retention_days}
 
 
 @router.patch("/organization")

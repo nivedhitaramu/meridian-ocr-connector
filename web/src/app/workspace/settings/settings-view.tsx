@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AuditEvent, Member, Organization, Role } from "@/lib/api";
 
-import { addMemberAction, changeRoleAction, removeMemberAction, renameAction, type SettingsFormState } from "./actions";
+import { addMemberAction, approvalStepsAction, changeRoleAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
 
 const INITIAL: SettingsFormState = { error: null, saved: false };
 const ROLES: Role[] = ["clerk", "supervisor", "admin"];
@@ -23,6 +23,21 @@ const ACTION_LABELS: Record<string, string> = {
   "member.removed": "Member removed",
   "member.role_changed": "Role changed",
   "session.started": "Signed in",
+  "document.uploaded": "Document uploaded",
+  "review.recorded": "Review recorded",
+  "approval.submitted": "Sent for approval",
+  "approval.steps_changed": "Approval steps changed",
+  "api_key.created": "API key created",
+  "api_key.rotated": "API key replaced",
+  "api_key.revoked": "API key revoked",
+  "webhook.added": "Webhook added",
+  "webhook.removed": "Webhook removed",
+  "intake.uploaded": "Batch uploaded",
+  "intake.grouped": "Document grouped automatically",
+  "intake.assigned": "Document assigned by a person",
+  "intake.discarded": "Document discarded",
+  "retention.changed": "Retention changed",
+  "retention.applied": "Old records deleted",
 };
 
 function FormMessage({ state, success }: { state: SettingsFormState; success?: string }) {
@@ -50,6 +65,53 @@ function RenameForm({ organization }: { organization: Organization }) {
       <FormMessage state={state} success="Saved." />
       <Button type="submit" disabled={pending}>
         {pending ? "Saving..." : "Save name"}
+      </Button>
+    </form>
+  );
+}
+
+function ApprovalForm({ organization }: { organization: Organization }) {
+  const [state, action, pending] = useActionState(approvalStepsAction, INITIAL);
+  const steps = organization.approval_steps.join(",");
+  const current = steps === "admin" ? "admin" : steps === "supervisor,admin" ? "both" : "supervisor";
+  return (
+    <form action={action} className="max-w-md space-y-3">
+      <input type="hidden" name="organization" value={organization.id} />
+      <div className="space-y-1">
+        <label htmlFor="settings-approval" className="block text-sm font-medium">
+          Who approves an exception?
+        </label>
+        <select id="settings-approval" name="steps" defaultValue={current} className={SELECT_CLASS + " w-full normal-case"}>
+          <option value="supervisor">A supervisor or admin</option>
+          <option value="admin">An admin</option>
+          <option value="both">A supervisor, then a different admin</option>
+        </select>
+      </div>
+      <FormMessage state={state} success="Saved." />
+      <Button type="submit" variant="outline" disabled={pending}>
+        {pending ? "Saving..." : "Save approval steps"}
+      </Button>
+    </form>
+  );
+}
+
+function RetentionForm({ organization }: { organization: Organization }) {
+  const [state, action, pending] = useActionState(retentionAction, INITIAL);
+  return (
+    <form action={action} className="max-w-md space-y-3">
+      <input type="hidden" name="organization" value={organization.id} />
+      <div className="space-y-1">
+        <label htmlFor="settings-retention" className="text-sm font-medium">
+          Keep shipment records for (days)
+        </label>
+        <Input id="settings-retention" name="days" inputMode="numeric" defaultValue={organization.retention_days ?? ""} aria-describedby="settings-retention-help" />
+        <p id="settings-retention-help" className="text-muted-foreground text-xs">
+          Leave empty to keep them. Otherwise, older shipments and their results are permanently deleted each night. The activity log stays.
+        </p>
+      </div>
+      <FormMessage state={state} success="Saved." />
+      <Button type="submit" variant="outline" disabled={pending}>
+        {pending ? "Saving..." : "Save retention"}
       </Button>
     </form>
   );
@@ -177,6 +239,12 @@ export function SettingsView({
           </CardHeader>
           <CardContent>
             <RenameForm organization={organization} />
+            <div className="mt-6">
+              <ApprovalForm organization={organization} />
+            </div>
+            <div className="mt-6">
+              <RetentionForm organization={organization} />
+            </div>
           </CardContent>
         </Card>
       ) : null}

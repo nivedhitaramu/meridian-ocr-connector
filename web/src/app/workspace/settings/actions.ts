@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { addMember, ApiError, changeRole, removeMember, renameOrganization, type Role } from "@/lib/api";
+import { addMember, ApiError, changeRole, removeMember, renameOrganization, type Role, setApprovalSteps, setRetention } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
 export type SettingsFormState = { error: string | null; saved: boolean };
@@ -41,6 +41,27 @@ export async function renameAction(_: SettingsFormState, form: FormData): Promis
   const name = text(form, "name");
   if (!name) return { error: "Enter a name.", saved: false };
   return run(form, async (id) => renameOrganization(await apiContext(id), name), "That name can't be used.");
+}
+
+const APPROVAL_CHOICES: Record<string, Role[]> = {
+  supervisor: ["supervisor"],
+  admin: ["admin"],
+  both: ["supervisor", "admin"],
+};
+
+export async function approvalStepsAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
+  const steps = APPROVAL_CHOICES[text(form, "steps")];
+  if (!steps) return { error: "Choose who approves.", saved: false };
+  return run(form, async (id) => setApprovalSteps(await apiContext(id), steps), "That choice can't be used.");
+}
+
+export async function retentionAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
+  const value = text(form, "days");
+  const days = value === "" ? null : Number(value);
+  if (days !== null && (!Number.isInteger(days) || days < 7 || days > 3650)) {
+    return { error: "Enter a whole number from 7 to 3650, or leave it empty.", saved: false };
+  }
+  return run(form, async (id) => setRetention(await apiContext(id), days), "That number can't be used.");
 }
 
 export async function addMemberAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
