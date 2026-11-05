@@ -4,6 +4,7 @@ from __future__ import annotations
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -27,6 +28,11 @@ class NewReview(BaseModel):
     action: Literal["resolve", "follow_up"]
     reason: str = Field(min_length=1, max_length=300)
     corrected_quantity: int | None = Field(default=None, ge=0)
+
+
+def _now() -> datetime:
+    """Approval state depends on review order, and the database default is only precise to the second on SQLite."""
+    return datetime.now(timezone.utc)
 
 
 class Submission(BaseModel):
@@ -152,7 +158,7 @@ def submit_for_approval(request: Request, job_id: uuid.UUID, body: Submission, m
     if _approval(rows, ["supervisor"]).resolved:
         return JSONResponse(status_code=409, content={"error": "This case is already resolved."})
     review = ReviewAction(organization_id=member.organization_id, job_id=job.id, reviewer_id=member.user_id,
-                          action="submit", reason=body.reason.strip())
+                          action="submit", reason=body.reason.strip(), created_at=_now())
     session.add(review)
     session.flush()
     audit.record(session, member.organization_id, member.user_id, audit.APPROVAL_SUBMITTED, f"review:{review.id}",
@@ -220,7 +226,7 @@ def add_review(request: Request, job_id: uuid.UUID, body: NewReview, member: Mem
         action = "resolve" if state.is_last_step else "approve"
     correction = {"total_quantity": body.corrected_quantity} if body.corrected_quantity is not None else None
     review = ReviewAction(organization_id=member.organization_id, job_id=job.id, reviewer_id=member.user_id,
-                          action=action, reason=body.reason.strip(), correction=correction)
+                          action=action, reason=body.reason.strip(), correction=correction, created_at=_now())
     session.add(review)
     session.flush()
     audit.record(session, member.organization_id, member.user_id, audit.REVIEW_RECORDED, f"review:{review.id}",
