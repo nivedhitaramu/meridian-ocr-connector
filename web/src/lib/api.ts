@@ -106,6 +106,18 @@ export type Job = {
   documents: JobDocument[];
 };
 
+export type JobRow = {
+  id: string;
+  shipment_id: string;
+  reference: string;
+  status: string;
+  check_status: string | null;
+  error_class: string | null;
+  attempts: number;
+  created_at: string | null;
+  finished_at: string | null;
+};
+
 export type ExceptionItem = {
   job_id: string;
   shipment_id: string;
@@ -126,6 +138,8 @@ export type Analytics = {
 
 export type Observability = {
   jobs_measured: number;
+  average_latency_ms: number;
+  vision_fallback_rate: number;
   latest: {
     job_id: string;
     job_status: string;
@@ -140,7 +154,19 @@ export type Observability = {
   checks_by_status: Record<string, number>;
 };
 
-export const listShipments = (context: ApiContext, limit = 50) => request<Shipment[]>(context, `/v1/shipments?limit=${limit}`);
+export type ListFilters = { limit?: number; q?: string; status?: string };
+
+function filterQuery({ limit = 50, q, status }: ListFilters): string {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (q?.trim()) query.set("q", q.trim());
+  if (status) query.set("status", status);
+  return query.toString();
+}
+
+export const listShipments = (context: ApiContext, filters: ListFilters = {}) =>
+  request<Shipment[]>(context, `/v1/shipments?${filterQuery(filters)}`);
+
+export const listJobs = (context: ApiContext, filters: ListFilters = {}) => request<JobRow[]>(context, `/v1/jobs?${filterQuery(filters)}`);
 
 export const getShipment = (context: ApiContext, id: string) =>
   request<ShipmentDetail>(context, `/v1/shipments/${encodeURIComponent(id)}`);

@@ -1,10 +1,11 @@
 import Link from "next/link";
 
-import { jobLabel, when } from "@/components/labels";
+import { CheckBadge, JobBadge, jobLabel, when } from "@/components/labels";
+import { ListFilter } from "@/components/list-filter";
 import { EmptyState } from "@/components/states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAnalytics, listShipments } from "@/lib/api";
+import { getAnalytics, listJobs } from "@/lib/api";
 import { organizationFor } from "@/lib/workspace";
 
 export const metadata = { title: "Dashboard | Meridian Intelligence" };
@@ -45,10 +46,12 @@ function Counts({ title, counts, label }: { title: string; counts: Record<string
   );
 }
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
-  const { org } = await searchParams;
+const JOB_STATUSES: [string, string][] = ["queued", "running", "succeeded", "failed", "manual_review"].map((status) => [status, jobLabel(status)]);
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ org?: string; q?: string; status?: string }> }) {
+  const { org, q = "", status = "" } = await searchParams;
   const { organizationId, context } = await organizationFor(org);
-  const [summary, recent] = await Promise.all([getAnalytics(context), listShipments(context, 10)]);
+  const [summary, history] = await Promise.all([getAnalytics(context), listJobs(context, { q, status })]);
   if (summary.shipments === 0) {
     return (
       <div className="space-y-6">
@@ -77,31 +80,50 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Recent shipments</CardTitle>
+          <CardTitle>Processing history</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reference</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recent.map((shipment) => (
-                <TableRow key={shipment.id}>
-                  <TableCell>
-                    <Link href={`/workspace/shipments/${shipment.id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
-                      {shipment.reference}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="capitalize">{shipment.status}</TableCell>
-                  <TableCell className="whitespace-nowrap tabular-nums">{when(shipment.created_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="space-y-4">
+          <ListFilter
+            action="/workspace/dashboard"
+            organizationId={organizationId}
+            searchLabel="Search references"
+            statusLabel="Job status"
+            q={q}
+            status={status}
+            statuses={JOB_STATUSES}
+          />
+          {history.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No jobs match.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Job</TableHead>
+                    <TableHead>Result</TableHead>
+                    <TableHead>Started</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {history.map((job) => (
+                    <TableRow key={job.id}>
+                      <TableCell>
+                        <Link href={`/workspace/shipments/${job.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
+                          {job.reference}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <JobBadge status={job.status} />
+                      </TableCell>
+                      <TableCell>{job.check_status ? <CheckBadge status={job.check_status} /> : null}</TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums">{when(job.created_at)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -27,6 +27,12 @@ class NewShipment(BaseModel):
     reference: str = Field(min_length=1, max_length=100)
 
 
+def contains(words: str) -> str:
+    """A LIKE pattern that treats % and _ in the search box as ordinary characters."""
+    escaped = words.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
 def _shipment(session: Session, member: Member, shipment_id: uuid.UUID) -> Shipment:
     shipment = session.scalar(select(Shipment).where(
         Shipment.id == shipment_id, Shipment.organization_id == member.organization_id))
@@ -53,10 +59,15 @@ def create_shipment(body: NewShipment, member: Member = Depends(current_member),
 
 
 @router.get("/shipments")
-def list_shipments(limit: int = Query(50, ge=1, le=200), member: Member = Depends(current_member),
+def list_shipments(limit: int = Query(50, ge=1, le=200), q: str | None = Query(None, max_length=100),
+                   status: str | None = Query(None, max_length=30), member: Member = Depends(current_member),
                    session: Session = Depends(get_db)):
-    rows = session.scalars(select(Shipment).where(Shipment.organization_id == member.organization_id)
-                           .order_by(Shipment.created_at.desc(), Shipment.id).limit(limit))
+    query = select(Shipment).where(Shipment.organization_id == member.organization_id)
+    if q and q.strip():
+        query = query.where(Shipment.reference.ilike(contains(q), escape="\\"))
+    if status:
+        query = query.where(Shipment.status == status)
+    rows = session.scalars(query.order_by(Shipment.created_at.desc(), Shipment.id).limit(limit))
     return [_shipment_json(s) for s in rows]
 
 

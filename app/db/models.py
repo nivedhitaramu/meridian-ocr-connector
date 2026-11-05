@@ -131,6 +131,7 @@ class ProcessingJob(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     error_class: Mapped[str | None] = mapped_column(String(50))
     timings_ms: Mapped[dict | None] = mapped_column(JsonValue)
+    used_vision_fallback: Mapped[bool | None]
     entity_counts: Mapped[dict | None] = mapped_column(JsonValue)
     created_at: Mapped[datetime] = _created_at()
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

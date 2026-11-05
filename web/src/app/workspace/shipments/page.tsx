@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { when } from "@/components/labels";
+import { ListFilter } from "@/components/list-filter";
 import { EmptyState } from "@/components/states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,10 +12,17 @@ import { NewShipmentForm } from "./forms";
 
 export const metadata = { title: "Shipments | Meridian Intelligence" };
 
-export default async function ShipmentsPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
-  const { org } = await searchParams;
+const STATUSES: [string, string][] = [
+  ["open", "Open"],
+  ["processing", "Processing"],
+  ["checked", "Checked"],
+];
+
+export default async function ShipmentsPage({ searchParams }: { searchParams: Promise<{ org?: string; q?: string; status?: string }> }) {
+  const { org, q = "", status = "" } = await searchParams;
   const { organizationId, context } = await organizationFor(org);
-  const shipments = await listShipments(context);
+  const shipments = await listShipments(context, { q, status });
+  const filtered = Boolean(q.trim() || status);
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">Shipments</h1>
@@ -26,11 +34,22 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
           <NewShipmentForm organizationId={organizationId} />
         </CardContent>
       </Card>
-      {shipments.length === 0 ? (
+      <ListFilter
+        action="/workspace/shipments"
+        organizationId={organizationId}
+        searchLabel="Search references"
+        statusLabel="Status"
+        q={q}
+        status={status}
+        statuses={STATUSES}
+      />
+      {shipments.length === 0 && filtered ? <EmptyState title="No shipments match this search" /> : null}
+      {shipments.length === 0 && !filtered ? (
         <EmptyState title="No shipments yet">
           <p>Create one above, then upload its invoice and packing list.</p>
         </EmptyState>
-      ) : (
+      ) : null}
+      {shipments.length > 0 ? (
         <Card>
           <CardContent className="overflow-x-auto">
             <Table>
@@ -57,7 +76,7 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
             </Table>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }

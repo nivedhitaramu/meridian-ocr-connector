@@ -158,8 +158,9 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/organization/members` | Add someone who has already signed in; admin |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
 | `DELETE /v1/organization/members/{user_id}` | Remove a member; admin |
-| `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments |
+| `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments; `q` searches references and `status` filters |
 | `GET /v1/shipments/{id}` | One shipment, with its documents and jobs |
+| `GET /v1/jobs` | Processing history; `q` searches references and `status` filters |
 | `POST /v1/shipments/{id}/documents` | Upload a document for a later job |
 | `POST /v1/shipments/{id}/jobs` | Start a background check; returns 202 and supports `Idempotency-Key` |
 | `GET /v1/jobs/{id}` | Job status and saved results |
