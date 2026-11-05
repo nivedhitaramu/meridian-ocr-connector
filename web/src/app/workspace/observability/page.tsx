@@ -90,6 +90,16 @@ export default async function ObservabilityPage({ searchParams }: { searchParams
             </CardHeader>
             <CardContent>
               <Timings timings={summary.average_stage_ms} />
+              <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div>
+                  <dt className="text-muted-foreground text-sm">Total time</dt>
+                  <dd className="text-xl font-semibold tabular-nums">{summary.average_latency_ms} ms</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-sm">Vision fallback</dt>
+                  <dd className="text-xl font-semibold tabular-nums">{Math.round(summary.vision_fallback_rate * 100)}%</dd>
+                </div>
+              </dl>
             </CardContent>
           </Card>
           <div className="grid gap-4 sm:grid-cols-2">

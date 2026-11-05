@@ -74,6 +74,7 @@ def _save_results(session: Session, job: ProcessingJob, documents: list[Document
                                    status=data["check"]["status"], reason=data["check"]["reason"]))
     job.timings_ms = data["pipeline"].get("timings_ms")
     job.entity_counts = data["pii"].get("entity_counts")
+    job.used_vision_fallback = bool(data["pipeline"].get("used_vision_fallback"))
     shipment = session.get(Shipment, job.shipment_id)
     shipment.status = "checked"
 

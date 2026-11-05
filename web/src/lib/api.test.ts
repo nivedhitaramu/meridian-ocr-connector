@@ -8,6 +8,8 @@ import {
   createOrganization,
   getMe,
   getOrganization,
+  listJobs,
+  listShipments,
   removeMember,
   startJob,
   uploadDocument,
@@ -28,6 +30,17 @@ function sent(mock: ReturnType<typeof respond>) {
   const [url, init] = mock.mock.calls[0] as unknown as [string, RequestInit];
   return { url, init, headers: new Headers(init.headers) };
 }
+
+describe("list filters", () => {
+  it("encodes search words and leaves out empty filters", async () => {
+    const shipments = respond(200, []);
+    await listShipments(context(shipments as unknown as typeof fetch), { q: " A&B ", status: "" });
+    expect(sent(shipments).url).toBe("http://api.test/v1/shipments?limit=50&q=A%26B");
+    const jobs = respond(200, []);
+    await listJobs(context(jobs as unknown as typeof fetch), { limit: 10, status: "failed" });
+    expect(sent(jobs).url).toBe("http://api.test/v1/jobs?limit=10&status=failed");
+  });
+});
 
 describe("api client", () => {
   it("sends the signed-in user's token", async () => {

@@ -148,6 +148,47 @@ def test_summaries_come_from_saved_jobs(api, monkeypatch):
     assert traces["latest"]["timings_ms"] == {"ocr": 1} and traces["latest"]["check_status"] in ("Match", "Mismatch")
 
 
+def test_summary_reports_latency_and_fallback_rate(api):
+    http, _, _, delivered = api
+    start_org(http)
+    run_job(http, delivered)
+    summary = http.get("/v1/observability/summary", headers=ALICE).json()
+    assert summary["average_latency_ms"] == 1 and summary["vision_fallback_rate"] == 0
+
+
+def test_processing_history_can_be_searched(api, monkeypatch):
+    http, _, _, delivered = api
+    start_org(http)
+    run_job(http, delivered, "MF-100")
+    mismatch(monkeypatch)
+    run_job(http, delivered, "XY_200")
+    everything = http.get("/v1/jobs", headers=ALICE).json()
+    assert {row["reference"] for row in everything} == {"MF-100", "XY_200"}
+    assert {row["check_status"] for row in everything} == {"Match", "Mismatch"}
+    assert [r["reference"] for r in http.get("/v1/jobs", params={"q": "mf-1"}, headers=ALICE).json()] == ["MF-100"]
+    assert http.get("/v1/jobs", params={"status": "failed"}, headers=ALICE).json() == []
+
+
+def test_processing_history_stays_in_the_organization(api):
+    http, _, _, delivered = api
+    start_org(http)
+    run_job(http, delivered)
+    http.post("/v1/organizations", headers=BOB, json={"name": "Other"})
+    assert http.get("/v1/jobs", headers=BOB).json() == []
+
+
+def test_shipments_can_be_searched_and_filtered(api):
+    http, _, _, delivered = api
+    start_org(http)
+    run_job(http, delivered, "MF-100")
+    new_shipment(http, reference="XY_200")
+    found = http.get("/v1/shipments", params={"q": "y_2"}, headers=ALICE).json()
+    assert [row["reference"] for row in found] == ["XY_200"]
+    assert http.get("/v1/shipments", params={"q": "%"}, headers=ALICE).json() == []
+    checked = http.get("/v1/shipments", params={"status": "checked"}, headers=ALICE).json()
+    assert [row["reference"] for row in checked] == ["MF-100"]
+
+
 def test_trace_summary_holds_no_document_values(api):
     http, _, _, delivered = api
     start_org(http)
