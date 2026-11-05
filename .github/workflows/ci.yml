@@ -55,6 +55,8 @@ jobs:
           cp .env.example .env
           sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-value/' .env
           sed -i 's/^LLM_PROVIDER=.*/LLM_PROVIDER=mock/' .env
+          sed -i 's/^WEBHOOK_ALLOW_PRIVATE=.*/WEBHOOK_ALLOW_PRIVATE=1/' .env
+          sed -i 's/^QUEUE_VISIBILITY_SECONDS=.*/QUEUE_VISIBILITY_SECONDS=45/' .env
       - name: Start the stack and wait for health checks
         run: docker compose up --build --detach --wait --wait-timeout 300
       - name: Run database migrations in the stack
@@ -65,9 +67,13 @@ jobs:
         run: |
           curl --fail --silent --show-error -F file=@samples/S02_invoice.pdf -F file2=@samples/S02_packing.pdf http://localhost:8000/v1/extract | grep -q '"status":"Match"'
           curl --fail --silent --show-error http://localhost:8501/_stcore/health
+      - name: Check Celery, Redis and row-level security, including a killed worker
+        run: python3 scripts/ci_stack_check.py
       - name: Show service state on failure
         if: failure()
-        run: docker compose ps --all
+        run: |
+          docker compose ps --all
+          docker compose logs --tail 60 worker
       - name: Stop the stack
         if: always()
         run: docker compose down --volumes
