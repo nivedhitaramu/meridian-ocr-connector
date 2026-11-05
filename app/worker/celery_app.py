@@ -21,6 +21,7 @@ app.conf.update(
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
+    broker_transport_options={"visibility_timeout": config.QUEUE_VISIBILITY_SECONDS},
     beat_schedule={
         "sweep-abandoned-uploads": {"task": "sweep_uploads", "schedule": crontab(minute=0)},
         "apply-retention": {"task": "apply_retention", "schedule": crontab(hour=2, minute=30)},

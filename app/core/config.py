@@ -62,6 +62,8 @@ STORAGE_MAX_AGE_SECONDS = _int("STORAGE_MAX_AGE_SECONDS", 3600)  # older files w
 
 # --- Background jobs -------------------------------------------------------
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+# After a worker dies, Redis redelivers its job once this has passed. Keep it longer than the slowest job.
+QUEUE_VISIBILITY_SECONDS = _int("QUEUE_VISIBILITY_SECONDS", 900)
 JOB_MAX_ATTEMPTS = _int("JOB_MAX_ATTEMPTS", 3)
 
 # --- Web -------------------------------------------------------------------
