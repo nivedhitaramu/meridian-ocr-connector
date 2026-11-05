@@ -46,22 +46,22 @@ These used the real model, `gemini-3.1-flash-lite`, with one run per case on one
 
 **Accuracy after the prompt change:** 120/120 fields, 20/20 types and 12/12 rules on the test sheet. Those documents were used to tune the system, so this only shows that the new prompt didn't break them. The 16 unseen documents weren't re-run, because they aren't unseen any more.
 
-## Decisions needed
+## Decisions
 
-Issue #36 is done when each of these is fixed or formally accepted. These are proposals, and **nothing here has been accepted yet**.
+The project owner accepted these proposals on 2026-11-05. "Accepted" means the risk stays for now. The other rows still need work before launch, so #36 stays open until they're done and #33 and #35 are built.
 
-| # | Risk | Proposal |
-|---|---|---|
-| A | **Injection can still get through.** The screen only catches plain wording, and the prompt isn't a guarantee. | Accept. A dishonest sender can also just print a false total, so this adds little. Rules decide the status, and people see both documents. |
-| B | **Clerk must require a verified email.** Otherwise someone can accept another person's invitation. | **Must do before launch.** Dashboard setting, not yet confirmed. |
-| C | **Model cost on the open demo route.** The daily limit counts requests, but one `.eml` can hold 10 documents, so 50 requests could mean 500 model calls, about Rs 15 at our measured rate. | Set `MAX_EML_ATTACHMENTS=4` when deploying, keep `DAILY_EXTRACT_LIMIT=50`, and set a budget alert. |
-| D | **No Content-Security-Policy.** Clerk needs a tested policy. | Add with deployment, under #33. |
-| E | **Webhook DNS rebinding isn't fully closed, and secrets are stored readable.** | Fix under #33, before real customers. |
-| F | **No alerts for new admins or API keys.** They're logged, but there's no email sender. | Accept for the demo. Build before real customers. |
-| G | **No company verification or way to suspend an organization.** | Accept for the demo. Build before real customers. |
-| H | **Remaining npm warnings** are moderate or low, in development tools and the `shadcn` package, which isn't used by running code apart from a CSS import. | Accept, and review again at launch. |
-| I | **`/v1/metrics` and `/v1/trace/last` are open if `INTERNAL_API_TOKEN` isn't set.** The demo refuses to start without it, and they hold no personal data. | Accept. |
-| J | **Rate limits are per process.** | Accept for one demo instance. Revisit with #35. |
+| # | Risk | Decision | Status |
+|---|---|---|---|
+| A | **Injection can still get through.** The screen only catches plain wording, and the prompt isn't a guarantee. | A dishonest sender can also just print a false total, so this adds little. Rules decide the status, and people see both documents. | Accepted |
+| B | **Clerk must require a verified email.** Otherwise someone can accept another person's invitation. | Dashboard setting, required before launch. | **To do:** not yet confirmed |
+| C | **Model cost on the open demo route.** The daily limit counts requests, but one `.eml` can hold 10 documents, so 50 requests could mean 500 model calls, about Rs 15 at our measured rate. | Set `MAX_EML_ATTACHMENTS=4` when deploying, keep `DAILY_EXTRACT_LIMIT=50`, and set a budget alert. | **To do:** at deployment |
+| D | **No Content-Security-Policy.** Clerk needs a tested policy. | Add with deployment, under #33. | **To do:** #33 |
+| E | **Webhook DNS rebinding isn't fully closed, and secrets are stored readable.** | Fix under #33, before real customers. | **To do:** #33 |
+| F | **No alerts for new admins or API keys.** They're logged, but there's no email sender. | Fine for the demo. Build before real customers. | Accepted for the demo |
+| G | **No company verification or way to suspend an organization.** | Fine for the demo. Build before real customers. | Accepted for the demo |
+| H | **Remaining npm warnings** are moderate or low, in development tools and the `shadcn` package, which isn't used by running code apart from a CSS import. | Review again at launch. | Accepted |
+| I | **`/v1/metrics` and `/v1/trace/last` are open if `INTERNAL_API_TOKEN` isn't set.** The demo refuses to start without it, and they hold no personal data. | No change. | Accepted |
+| J | **Rate limits are per process.** | Fine for one demo instance. Revisit with #35. | Accepted for the demo |
 
 ## Not reviewed
 
