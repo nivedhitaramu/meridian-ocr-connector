@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from .api import deps, reviews, shipments, tenancy
+from .api import deps, reviews, shipments, tenancy, customer
 from .api.deps import current_user
 from .core import auth, config
 from .db import users
@@ -40,6 +40,7 @@ instrument_fastapi(app)
 app.include_router(tenancy.router)
 app.include_router(shipments.router)
 app.include_router(reviews.router)
+app.include_router(customer.router)
 limiter = RateLimiter(config.RATE_LIMIT_PER_MINUTE)
 daily_limit = DailyLimit(config.DAILY_EXTRACT_LIMIT)
 _RESPONSE_MODEL = registry.active().response_model
@@ -59,6 +60,12 @@ def _not_signed_in(_: Request, err: auth.AuthError) -> JSONResponse:
 @app.exception_handler(deps.NotFound)
 def _not_found(_: Request, __: deps.NotFound) -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": "Not found."})
+
+
+@app.exception_handler(deps.RateLimited)
+def _key_rate_limited(_: Request, __: deps.RateLimited) -> JSONResponse:
+    return JSONResponse(status_code=429, content={"error": "Too many requests. Try again in a minute."},
+                        headers={"Retry-After": "60"})
 
 
 @app.exception_handler(deps.Forbidden)

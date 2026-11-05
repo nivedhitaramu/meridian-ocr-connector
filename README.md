@@ -171,6 +171,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/analytics/summary` | Counts for the organization |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
+| `/v1/api-keys`, `/v1/webhooks` | Customer API keys and signed webhooks; admin. See [docs/API.md](docs/API.md) |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
 

@@ -69,6 +69,9 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://local
 RATE_LIMIT_PER_MINUTE = _int("RATE_LIMIT_PER_MINUTE", 30)  # per client, on the extract endpoints. 0 turns it off.
 # Across all clients, per running copy. A public demo on a paid key needs this: each request costs money. 0 turns it off.
 DAILY_EXTRACT_LIMIT = _int("DAILY_EXTRACT_LIMIT", 200)
+API_KEY_RATE_LIMIT_PER_MINUTE = _int("API_KEY_RATE_LIMIT_PER_MINUTE", 120)  # per customer API key. 0 turns it off.
+WEBHOOK_MAX_ATTEMPTS = _int("WEBHOOK_MAX_ATTEMPTS", 5)
+WEBHOOK_ALLOW_PRIVATE = os.getenv("WEBHOOK_ALLOW_PRIVATE", "0") == "1"  # local development only
 # When set, /v1/trace/last and /v1/metrics need this value in the X-Internal-Token header. Set it when deployed.
 INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 

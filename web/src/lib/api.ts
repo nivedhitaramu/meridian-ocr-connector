@@ -205,6 +205,31 @@ export const submitForApproval = (context: ApiContext, jobId: string, reason: st
 export const setApprovalSteps = (context: ApiContext, steps: Role[]) =>
   request<{ approval_steps: Role[] }>(context, "/v1/organization/approval-steps", { method: "PATCH", body: JSON.stringify({ steps }) });
 
+export type ApiKey = { id: string; name: string; prefix: string; created_at: string | null; last_used_at: string | null; revoked_at: string | null };
+export type Webhook = { id: string; url: string; created_at: string | null };
+export type Delivery = { id: string; endpoint_id: string; job_id: string; status: string; attempts: number; response_code: number | null; created_at: string | null };
+
+export const listApiKeys = (context: ApiContext) => request<ApiKey[]>(context, "/v1/api-keys");
+
+export const createApiKey = (context: ApiContext, name: string) =>
+  request<ApiKey & { key: string }>(context, "/v1/api-keys", { method: "POST", body: JSON.stringify({ name }) });
+
+export const rotateApiKey = (context: ApiContext, id: string) =>
+  request<ApiKey & { key: string }>(context, `/v1/api-keys/${encodeURIComponent(id)}/rotate`, { method: "POST" });
+
+export const revokeApiKey = (context: ApiContext, id: string) =>
+  request<void>(context, `/v1/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+export const listWebhooks = (context: ApiContext) => request<Webhook[]>(context, "/v1/webhooks");
+
+export const addWebhook = (context: ApiContext, url: string) =>
+  request<Webhook & { secret: string }>(context, "/v1/webhooks", { method: "POST", body: JSON.stringify({ url }) });
+
+export const removeWebhook = (context: ApiContext, id: string) =>
+  request<void>(context, `/v1/webhooks/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+export const listDeliveries = (context: ApiContext) => request<Delivery[]>(context, "/v1/webhooks/deliveries");
+
 export const getAnalytics = (context: ApiContext) => request<Analytics>(context, "/v1/analytics/summary");
 
 export const getObservability = (context: ApiContext) => request<Observability>(context, "/v1/observability/summary");

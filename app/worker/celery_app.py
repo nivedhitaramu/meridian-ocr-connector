@@ -10,7 +10,7 @@ from celery.signals import worker_process_init
 
 from ..core import config
 from ..pipeline import pii
-from . import jobs
+from . import jobs, webhooks
 
 app = Celery("meridian", broker=config.REDIS_URL)
 app.conf.update(
@@ -40,6 +40,14 @@ def process_job(self, organization_id: str, job_id: str) -> None:
         jobs.process(organization_id, job_id)
     except jobs.TryAgain as exc:
         raise self.retry(exc=exc)
+
+
+@app.task(bind=True, name="deliver_webhook", max_retries=config.WEBHOOK_MAX_ATTEMPTS)
+def deliver_webhook(self, organization_id: str, delivery_id: str) -> None:
+    try:
+        webhooks.deliver(organization_id, delivery_id)
+    except webhooks.TryAgain as exc:
+        raise self.retry(exc=exc, countdown=30 * 2 ** self.request.retries)
 
 
 @app.task(name="sweep_uploads")
