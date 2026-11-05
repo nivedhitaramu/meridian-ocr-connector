@@ -11,11 +11,11 @@ Each diagram is labelled:
 
 | Layer | Built | Target |
 |---|---|---|
-| 1. Experience | Streamlit clerk page; Next.js shipments, comparison, exceptions, dashboard, observability and settings, not yet run with real sign-in | Verifying those screens end to end |
-| 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk token verification | HTTPS, WAF, sign-in screens, authorization |
-| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles, audit events, shipments and jobs | Human review |
+| 1. Experience | Streamlit clerk page; Next.js intake, shipments, comparison, exceptions, approvals, dashboard, observability, settings and API access. Sign-in, organization, shipment, upload and one check have run with a real Clerk account | Testing the other screens end to end |
+| 2. Edge and security | CORS limit, file checks, 10 MB cap, rate limiting, Clerk sign-in screens and token verification, role checks | HTTPS, WAF |
+| 3. Control plane | Stateless `POST /v1/extract` and `/v1/extract-eml`; organizations, members, roles, audit events, intake, shipments, jobs, approvals, customer API keys and webhooks | Connectors and billing |
 | 4. Data and messaging | PostgreSQL, Redis queue, and local or S3-compatible temporary storage | SQS, if chosen during AWS work |
-| 5. Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs | Scaling workers apart in production |
+| 5. Document intelligence | All stages, in the API for `/v1/extract` and in Celery workers for jobs; versioned configuration; grouping with local OCR only | Scaling workers apart in production |
 | 6. Observability | OpenTelemetry spans, safe JSON logs, in-memory counters | Collector, Grafana or CloudWatch dashboards |
 
 ## Code layers
@@ -26,12 +26,13 @@ app/
   core/              Platform: settings, errors, telemetry
   ingestion/         Platform: upload checks, storage, .eml attachments
   pipeline/          Document intelligence: OCR, PII, vision, LLM, runner
-  domains/meridian/  Meridian only: schemas, prompt, business rules
+  domains/configured.py  The engine that runs a workflow from its configuration
+  domains/meridian/  Meridian only: configuration file, grouping rules, offline mock
 ui/                  Experience: Streamlit page
 web/                 Experience: Next.js product UI
 ```
 
-A new document workflow should add a folder under `domains/`. `pipeline/` still imports Meridian's schemas and rules directly, so that boundary needs an interface before a second domain is added.
+A new document workflow should add a folder under `domains/` and register it in `domains/registry.py`. `pipeline/` reaches a workflow through the `Domain` interface in `domains/base.py`. A test runs a second workflow from configuration alone, but no second workflow ships yet.
 
 ## 1. Complete system architecture
 
@@ -159,7 +160,7 @@ Every path reaches the cleanup step, including failures. Normalization and valid
 
 ## 3. Production database architecture
 
-**Status: Built**, apart from review actions, which have a table but no API yet.
+**Status: Built.**
 
 ```mermaid
 erDiagram
@@ -171,7 +172,7 @@ erDiagram
     SHIPMENTS ||--o{ PROCESSING_JOBS : triggers
     PROCESSING_JOBS ||--o| VERIFICATION_RESULTS : produces
     DOCUMENTS ||--o{ EXTRACTION_RESULTS : produces
-    VERIFICATION_RESULTS ||--o{ REVIEW_ACTIONS : receives
+    PROCESSING_JOBS ||--o{ REVIEW_ACTIONS : receives
 
     ORGANIZATIONS {
         uuid id PK
@@ -235,7 +236,7 @@ erDiagram
     REVIEW_ACTIONS {
         uuid id PK
         uuid organization_id FK
-        uuid verification_result_id FK
+        uuid job_id FK
         uuid reviewer_id FK
         string action
         datetime created_at
@@ -259,7 +260,7 @@ Rules for this schema:
 
 ## 4. API architecture
 
-**Status: Built.** `POST /v1/extract` stays synchronous, as the assignment requires. Both flows share one pipeline. It hasn't run with real sign-in yet.
+**Status: Built.** `POST /v1/extract` stays synchronous, as the assignment requires. Both flows share one pipeline. A check has run through the website with real sign-in, using a local stand-in for the queue. CI checks the Celery worker responds in the Docker stack.
 
 ```mermaid
 sequenceDiagram
@@ -296,8 +297,12 @@ sequenceDiagram
 | `POST /v1/shipments/{id}/documents` | Built | Add documents |
 | `POST /v1/shipments/{id}/jobs` | Built | Start processing; returns 202 |
 | `GET /v1/jobs/{id}` | Built | Job status and result |
-| `POST /v1/results/{id}/reviews` | Target | Record a human review |
-| `/v1/organizations`, `/v1/users`, `/v1/analytics`, `/v1/audit-events` | Target | Administration and reporting |
+| `GET`, `POST /v1/jobs/{id}/reviews` | Built | Read or record a human review |
+| `POST /v1/jobs/{id}/submit` | Built | Ask for approval on an exception |
+| `POST /v1/intake` and `/v1/intake/items/{id}/assign` | Built | Group uploaded documents, or record a person's decision |
+| `/v1/api-keys`, `/v1/webhooks` | Built | Customer access, documented in `docs/API.md` |
+| `GET /v1/configurations/{version}` | Built | The rules behind a saved result |
+| `/v1/organizations`, `/v1/organization`, `/v1/exceptions`, `/v1/analytics/summary`, `/v1/observability/summary`, `/v1/audit-events` | Built | Administration and reporting |
 
 ## 5. Production deployment architecture
 
@@ -342,7 +347,7 @@ flowchart TB
 
 ## 6. Security architecture
 
-**Status: Partly built.** Masking, the "Safe to send?" residual scan, the fallback rule, output scrubbing, generic errors, token verification and tenant isolation exist. There's no separate gateway component yet, and sign-in screens and network limits are Target.
+**Status: Partly built.** Masking, the "Safe to send?" residual scan, the fallback rule, output scrubbing, generic errors, token verification and tenant isolation exist. There's no separate gateway component yet, and network limits are Target.
 
 ```mermaid
 flowchart TB
@@ -372,7 +377,7 @@ Controls across the system:
 
 **Requests switch to a restricted database role (2026-11-02).** PostgreSQL superusers skip row-level security, and the database user in `docker-compose.yml` is one. Each signed-in request therefore runs `SET LOCAL ROLE meridian_app`, so the policies always apply. A deployed app should also connect as a non-superuser.
 
-**Sign-in uses Clerk (2026-11-02).** It's the fastest route to sign-up, sign-in and password reset, and works well with the planned Next.js app. The API only verifies signed tokens with Clerk's public keys, so it holds no passwords. The trade-offs are an outside service holding user emails, and a pricing dependency to review before launch. AWS Cognito was the alternative: it keeps users in our AWS account, but it's slower to set up and harder to test locally.
+**Sign-in uses Clerk (2026-11-02).** It's the fastest route to sign-up, sign-in and password reset, and works well with the Next.js app. The API only verifies signed tokens with Clerk's public keys, so it holds no passwords. The trade-offs are an outside service holding user emails, and a pricing dependency to review before launch. AWS Cognito was the alternative: it keeps users in our AWS account, but it's slower to set up and harder to test locally.
 
 ## Corrections made to the original diagrams
 
@@ -388,4 +393,4 @@ The six diagrams keep their original design, with these fixes:
 8. Added `organization_id` on tenant tables, roles, review actions and fields the empty tables lacked.
 9. "Safe to send?" now has defined criteria, and model output gets checked.
 
-The manual review path still needs a safe status saved once the database exists, so the exception center has a record to show.
+The manual review path saves a safe job status, so the exception center has a record to show.

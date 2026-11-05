@@ -21,12 +21,12 @@ def _int(name: str, default: int) -> int:
 DOMAIN = os.getenv("DOMAIN", "meridian")
 
 # --- LLM -------------------------------------------------------------------
-# "openai_compatible" works with Groq, OpenRouter, Together, Ollama, LM Studio...
+# "openai_compatible" works with Gemini, Groq, OpenRouter, Together, Ollama, LM Studio...
 # "mock" is a regex extractor for offline development and CI. Never demo with it.
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai_compatible")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai").rstrip("/")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.1-flash-lite")
 LLM_TIMEOUT_S = _int("LLM_TIMEOUT_S", 60)
 
 # Vision fallback. Leave VISION_MODEL empty to return a manual-review error instead.

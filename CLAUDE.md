@@ -12,8 +12,8 @@ Team Delta's project for the Build Fast with AI (BFWAI) OCR Connector fellowship
 A receiving clerk uploads shipping documents and gets an answer to one question: **does the invoice quantity match the packing list?**
 
 - **Now:** meet every fellowship requirement. The assignment PDF and the `fde-week-2.vercel.app/meridian` page are the authority on what's graded.
-- **After submission:** grow it into a B2B document intelligence SaaS, with Meridian as the first domain pack. Planned: Postgres, auth, tenancy, background workers, a Next.js UI, human review and AWS.
-- **Build order:** finish the fellowship work first. Don't start SaaS work before submission, unless the user changes this.
+- **After submission:** grow it into a B2B document intelligence SaaS, with Meridian as the first domain pack. Those product layers are now built, apart from AWS and connectors, and nothing is deployed.
+- **Build order:** finish the graded fellowship work first. The user has also asked for the product issues to be built before submission.
 - **Architecture authority:** `docs/ARCHITECTURE.md`, drawn from the user's six diagrams, is the source of truth for design. The assignment still decides what's graded. Label anything not built as Target.
 
 Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README 15%, presentation 15%, `.eml` stretch +10%. A trace containing a name fails the masking criterion even if Presidio ran.
@@ -22,7 +22,7 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 
 **Fields:** `fields` has exactly six keys: `invoice_number`, `shipper_name`, `receiver_name`, `shipment_date`, `total_quantity`, `total_weight_kg`. Use null when absent. Helper values such as units stay outside `fields`.
 
-**Statuses:** exactly four, always decided by `app/domains/meridian/rules.py` and never by the model.
+**Statuses:** exactly four, always decided by the engine in `app/domains/configured.py` from Meridian's configuration, and never by the model.
 
 | Status | When |
 |---|---|
@@ -64,17 +64,18 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 | `app/pipeline/pii.py` | Presidio, custom recognizers, placeholder map |
 | `app/pipeline/llm.py`, `mock_llm.py` | Model calls and offline stand-in |
 | `app/pipeline/vision.py` | Image redaction and receipt signature band |
-| `app/domains/meridian/rules.py` | Normalization and the status decision |
-| `app/domains/meridian/schemas.py` | Pydantic models and API contract |
-| `app/domains/meridian/prompt.py` | Extraction prompt |
+| `app/domains/configured.py` | Engine that runs a workflow: models, normalization, status decision |
+| `app/domains/meridian/config/` | Meridian's versioned configuration, including the prompt. Add a new file; never edit a released one |
+| `app/domains/meridian/grouping.py` | Grouping rules for uploads, using local OCR only |
 | `ui/streamlit_app.py` | Clerk page and trace panel |
-| `app/api/` | Product routes: tenancy, shipments and jobs, reviews and summaries |
+| `app/api/` | Product routes: tenancy, intake, shipments and jobs, reviews and summaries, customer API |
 | `app/worker/` | Celery jobs; only IDs go through the queue |
 | `web/` | Next.js product UI; see `web/README.md` |
 | `docs/ARCHITECTURE.md` | Six architecture diagrams, labelled Built or Target |
+| `docs/API.md` | Customer API and webhooks |
 | `scripts/` | Sample generation, `.eml` packets, evaluation |
 | `samples/` | 40 synthetic documents, test sheets, `.eml` packets |
-| `tests/` | Rules, placeholder map, upload, Presidio |
+| `tests/` | Automated tests for every layer |
 
 ## Commands
 
@@ -98,53 +99,54 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 - **2026-11-02: Fellowship work comes before SaaS work.**
 - **2026-11-02: The user's architecture replaces the first commit's README and docs as the reference.** Existing code is reused where it fits, moved into `core`, `ingestion`, `pipeline` and `domains/meridian`. This is merged into `main`.
-- **Frontend:** Streamlit now, as the assignment specifies. Next.js comes after submission.
+- **Frontend:** Streamlit stays the fellowship screen, as the assignment specifies. Next.js is the product UI.
 - **OCR and PDF rendering:** Tesseract and pdf2image with Poppler, as built.
 - **Two totals on a page:** `total_quantity` holds the shipping-unit total (cartons or packages), because put-away is by carton. The check compares like with like, so 1,200 pieces on an invoice matches a packing list printing 50 cartons and 1,200 pieces.
 - **Person-only shipper or receiver:** the placeholder stays in the field, and the schema doesn't grow.
 - **2026-11-02: Sign-in uses Clerk.** The API verifies tokens and stores no passwords. Product routes depend on `current_user`; `POST /v1/extract` stays open.
 - **2026-11-02: Tenant isolation.** The organization comes from memberships, never a request body. Other tenants' records return 404. Each signed-in request runs as the restricted `meridian_app` role, because superusers skip row-level security. New tenant tables must add a policy in their migration.
+- **2026-11-04: The user asked to build the product issues before submission.** This replaces the fellowship-first order for those issues. The assignment still decides what's graded.
 - **Hosted vision:** off unless `VISION_MODEL` is set; otherwise unreadable scans return manual review.
 
 ## Current status
 
-**Last updated:** 2026-11-02.
+**Last updated:** 2026-11-05.
 
-**On `main`:** architecture layout, privacy fixes (#4), hardening (#7, #8, #10), CI, Docker stack (#13, worker pending), database schema (#14), Clerk token verification (#15, sign-in screens pending), tenant isolation (#16), audit events (#22, upload and review events pending) and unseen test documents (#9). Issues #2-#45 hold the full plan.
+**On `main`:** the full pipeline, `.eml` route, Streamlit page, Clerk sign-in, tenant isolation, audit events, shipments, Celery jobs, human review, approvals, customer API and webhooks, versioned configuration, personal GSTIN masking, retention, trends, document grouping and all Next.js screens (PRs through #71). All 29 remaining issues are still open, because their screens or decisions are outstanding.
 
-**In review, stacked in this order:** PR #53 (#23 Next.js foundation), PR #56 (#24 landing and sign-in screens) and the `web-settings` PR (#30 settings). PR #55 is a small Streamlit table fix. None of the signed-in screens has run with a real Clerk application.
+**Verified by running**
+- **Real model (2026-11-04):** `gemini-3.1-flash-lite`, prompt `meridian-v2`: 100% on field, type and rule for the test sheet and holdout. The first holdout run was 94.0% on fields and 87.5% on rules, and its fixes mean the holdout is no longer unseen. This predates the #68 configuration change, which kept the prompt and parsing identical on 40,000 random cases.
+- **Website (2026-11-04):** one real Clerk account signed in, created an organization and a shipment, uploaded documents and got one Incomplete result. This used SQLite and a local thread in place of Redis and Celery, kept outside the repo.
+- **Customer API (2026-11-05):** `scripts/customer_example.py` submitted S01 and received a signed webhook over real HTTP, using the mock model, a throwaway database and threads instead of Celery.
+- **Grouping (2026-11-05):** `scripts/evaluate_grouping.py`: 34 of 34 clean documents grouped and 0 wrong; 0 of 34 damaged documents grouped. The patterns were written after seeing these samples, so this isn't an unseen score.
+- **CI on every PR:** tests with PostgreSQL, including row-level security; the Docker stack, with a worker ping; the demo image; the web app. CI uses `LLM_PROVIDER=mock`.
 
-**Needed from the user:** an LLM key for #5, then #11 and #12; a Clerk application to verify #15, #23, #24 and #30.
-
-**Waiting on other issues:** #22 upload and review events need #20 and #27, which should call `audit.record`. Upload events are now recorded.
-
-**Verified by running, using `LLM_PROVIDER=mock`:** all 45 tests pass. The live API returned the right status for the 120 vs 120 pair, the 120 vs 118 pair, a receipt and an `.eml` packet. A faint scan and a renamed non-PDF were rejected. Telemetry and API logs contained no sample personal data, and no uploads were left behind. The Streamlit server started.
-
-**Not verified:** a real LLM call, real accuracy, hosted vision and any deployed environment. Mock's 100% evaluation only proves the plumbing, because mock is tuned to the samples.
-
-**Present in the code:** upload checks, OCR, masking, extraction, rules, `/v1/extract`, `/v1/extract-eml`, telemetry, trace panel, Streamlit page, 40 samples, 20-document test sheet, 12 rule cases and an evaluation script.
-
-
-**Not done**
-- [ ] Measure accuracy with the real model (README says "Not measured yet")
-- [ ] Confirm the LLM provider, its model ID and that its terms exclude training on prompts
-- [ ] Deploy the live demo; the `Dockerfile` starts only the API, not Streamlit
-- [ ] Confirm the Mermaid diagrams render on GitHub
-- [ ] Build the Target layers: PostgreSQL, Redis, workers, auth, tenancy, Next.js, AWS
-
-**Privacy fixes in the local change (#4):** surnames like Mills are no longer treated as company words, so a company named only with such words gets masked. Emails with unusual domains are masked. Masked text with a leftover email, mobile, Aadhaar or PAN shape blocks the model call. Model output is scrubbed. NER spans are split by line. A poor scan with an unclear type goes to manual review. Contact lines use OCR line numbers. `masked_before_llm` reports what happened.
+**Not verified**
+- Match, Mismatch, exceptions, approvals, dashboards, API access, intake and retention on the website with a real account
+- A full check, a webhook, intake or the retention schedule through real Celery and Redis
+- Row-level security during a signed-in browser session
+- Any deployed environment, and accuracy on new unseen documents
+- That the LLM provider's terms exclude training on prompts
 
 **Remaining known issues**
-1. **Company filter is still word-based:** a real company without a listed word gets masked, which lowers shipper and receiver accuracy. Check this with unseen documents (#9).
+1. **Company filter is word-based:** a company without a listed word gets masked, which lowers shipper and receiver accuracy.
 2. **Personal addresses:** detection relies on Presidio's LOCATION and misses street lines, for example "14 Harbour Road".
-3. **Slow OCR:** about 3 seconds per document on this machine, so check the timeout and hosting size before deploying.
+3. **Slow OCR:** about 3 to 5 seconds per document on this machine, so check the timeout and hosting size before deploying.
 4. **Rate limit is per process and per client address:** behind Streamlit, all users share one address, so the limit protects the LLM quota rather than separating users.
-5. **Test sheet isn't a separate holdout:** its 20 documents are drawn from the 40 samples. Consider adding unseen documents.
+5. **Other invoice formats:** one uploaded invoice in a different format returned no shipper or quantity. That result hasn't been compared with its original.
+6. **Webhooks:** DNS rebinding isn't fully closed and secrets are stored readable, both noted for #33.
+7. **Intake:** files waiting for review are removed after about an hour, and the website limits a batch to about 11 MB.
 
-**Git safety:** stage files by name. On a branch without `web/`, its own `.gitignore` is gone, so `git add -A` can pick up `node_modules` until PR #55 merges.
+**Git safety:** stage files by name.
 
-**Real-model accuracy (#5, 2026-11-04):** `gemini-3.1-flash-lite`, prompt `meridian-v2`: 100% on field, type and rule for the test sheet and holdout. The first holdout run was 94.0% on fields and 87.5% on rules, and its fixes mean the holdout is no longer unseen. A final score should use new documents.
+**Issues by what they need**
+- **Signed-in testing:** #15, #23-#30, #39, #40.
+- **A host choice:** #6, then #11 and #12.
+- **New documents and terms check:** #5.
+- **Test Clerk keys in GitHub:** #31.
+- **Decisions:** #32-#37, #41, #43, #44, and single sign-on in #45. #38 is built for uploads, and the mailbox is #37.
+- **Celery check:** #19 still needs the kill-a-worker test.
 
-**Next step:** create a Clerk application so the signed-in screens can run for real, choose a host for the live demo (#6, `docs/DEPLOY.md`), then re-score on new documents.
+**Next step:** choose a host for the live demo (#6, `docs/DEPLOY.md`), test the signed-in screens, then re-score on new documents (#5).
 
-**Open questions for the team:** submission deadline, final LLM provider, live demo hosting, who owns what, and whether the Target layers should start before submission.
+**Open questions for the team:** submission deadline, live demo host, and when the AWS and decision issues should start.
