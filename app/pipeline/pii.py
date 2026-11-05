@@ -35,6 +35,10 @@ _COMPANY_WORDS = re.compile(
     r"cargo|carriers|textiles|electronics|distributors|forwarders)\b\.?",
     re.IGNORECASE,
 )
+# NER sometimes stops just before the company word, or reads a reference as a person. Names don't hold digits,
+# and ID shapes are still masked by their own recognizers and blocked by the residual scan.
+_HAS_DIGIT = re.compile(r"\d")
+_COMPANY_WORD_NEXT = re.compile(r"[ \t]+(?:" + _COMPANY_WORDS.pattern[3:-6] + r")\b", re.IGNORECASE)
 # Document labels the NER model sometimes mistakes for names or places.
 _LABEL_WORDS = {
     "commercial invoice", "packing list", "delivery receipt", "invoice", "shipper",
@@ -216,6 +220,8 @@ def detect(text: str) -> list[Span]:
         for start, end in _line_parts(text, r.start, r.end):
             if r.entity_type in ("PERSON", "LOCATION") and _looks_like_company_or_label(text[start:end]):
                 continue  # company names may stay in the prompt
+            if r.entity_type == "PERSON" and (_HAS_DIGIT.search(text[start:end]) or _COMPANY_WORD_NEXT.match(text, end)):
+                continue  # a reference like ZN/2026/1044, or the start of a name like Sagar Bulk Traders
             if r.entity_type == "LOCATION" and _PARTY_LABEL.search(text[text.rfind("\n", 0, start) + 1:start]):
                 continue
             spans.append(Span(start, end, r.entity_type, r.score))

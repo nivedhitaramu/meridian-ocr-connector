@@ -16,6 +16,15 @@ def test_personal_gstin_is_masked_and_a_company_gstin_stays():
     assert residual_types(masked) == set()
 
 
+def test_a_company_word_after_a_name_keeps_the_company_and_a_person_stays_masked():
+    from app.pipeline.pii import mask
+
+    v = PlaceholderVault()
+    masked, _ = mask("Vendor: Sagar Bulk Traders\nContact: Lakshmi Menon\nReference Invoice: ZN/2026/1044\nID: ABCPE1234F", v)
+    assert "Sagar Bulk Traders" in masked and "ZN/2026/1044" in masked
+    assert "Lakshmi" not in masked and "ABCPE1234F" not in masked
+
+
 def test_presidio_masks_contacts_keeps_companies():
     from app.pipeline.pii import mask
 
