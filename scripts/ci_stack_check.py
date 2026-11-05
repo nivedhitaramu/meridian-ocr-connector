@@ -125,7 +125,7 @@ def check_full_flow() -> None:
     state = wait_for("a job to finish through Celery", lambda: finished(job))
     assert state["status"] == "succeeded", state["status"]
     assert state["check"]["status"] == "Match", state["check"]
-    assert state["config_version"] == "meridian-1", state["config_version"]
+    assert state["config_version"] == "meridian-2", state["config_version"]
     print("OK  full check through Celery and Redis: Match")
 
 
