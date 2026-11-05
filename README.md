@@ -215,9 +215,9 @@ To set it up:
 
 | Rule | Where |
 |---|---|
-| Presidio runs before any network call, with Indian mobile, Aadhaar-shaped, PAN, bank account, IFSC, policy and roll number recognizers | `app/pipeline/pii.py` |
+| Presidio runs before any network call, with Indian mobile, Aadhaar-shaped, PAN, personal GSTIN, bank account, IFSC, policy and roll number recognizers | `app/pipeline/pii.py` |
 | Same person on two documents gets one placeholder; the map stays in memory and is cleared in `finally` | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
-| Masked text with a leftover email, mobile, Aadhaar or PAN shape blocks the model call, and model output is scrubbed | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
+| Masked text with a leftover email, mobile, Aadhaar, PAN or personal GSTIN shape blocks the model call, and model output is scrubbed | `app/pipeline/pii.py`, `app/pipeline/runner.py` |
 | A receipt's bottom band is masked in the text path too | `app/pipeline/vision.py` |
 | Only redacted images can go to a vision model; an unclear document type or no word boxes means manual review | `app/pipeline/vision.py`, `app/pipeline/llm.py` |
 | File bytes checked, random names, deleted after the request | `app/ingestion/upload.py` |
