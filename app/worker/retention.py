@@ -9,11 +9,11 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from ..db import audit
-from ..db.models import (Document, ExtractionResult, Organization, ProcessingJob, ReviewAction, Shipment,
+from ..db.models import (Document, ExtractionResult, IntakeItem, Organization, ProcessingJob, ReviewAction, Shipment,
                          VerificationResult, WebhookDelivery)
 from ..db.session import new_session
 from ..db.tenancy import set_scope
@@ -32,6 +32,7 @@ def _delete_shipments(session: Session, organization_id: uuid.UUID, shipment_ids
     session.execute(delete(ExtractionResult).where(ExtractionResult.document_id.in_([row[0] for row in documents])))
     session.execute(delete(Document).where(Document.shipment_id.in_(shipment_ids)))
     session.execute(delete(ProcessingJob).where(ProcessingJob.shipment_id.in_(shipment_ids)))
+    session.execute(update(IntakeItem).where(IntakeItem.shipment_id.in_(shipment_ids)).values(shipment_id=None))
     session.execute(delete(Shipment).where(Shipment.id.in_(shipment_ids)))
     audit.record(session, organization_id, None, audit.RETENTION_APPLIED, f"shipments:{len(shipment_ids)}", None)
     session.commit()
@@ -51,6 +52,10 @@ def apply(organization_id: uuid.UUID, days: int, now: datetime | None = None) ->
         expired = sorted(old - busy)
         if expired:
             _delete_shipments(session, organization_id, expired)
+        # Items keep only a reference and a status, but they follow the same limit.
+        session.execute(delete(IntakeItem).where(
+            IntakeItem.organization_id == organization_id, IntakeItem.created_at < cutoff, IntakeItem.storage_key.is_(None)))
+        session.commit()
     return len(expired)
 
 

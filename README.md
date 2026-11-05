@@ -161,6 +161,8 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments; `q` searches references and `status` filters |
 | `GET /v1/shipments/{id}` | One shipment, with its documents and jobs |
 | `GET /v1/jobs` | Processing history; `q` searches references and `status` filters |
+| `POST /v1/intake`, `GET /v1/intake` | Upload up to 20 documents together; clear matches join a shipment, and the rest wait for review |
+| `POST /v1/intake/items/{id}/assign`, `DELETE /v1/intake/items/{id}` | A person's decision on an uncertain document |
 | `POST /v1/shipments/{id}/documents` | Upload a document for a later job |
 | `POST /v1/shipments/{id}/jobs` | Start a background check; returns 202 and supports `Idempotency-Key` |
 | `GET /v1/jobs/{id}` | Job status and saved results |

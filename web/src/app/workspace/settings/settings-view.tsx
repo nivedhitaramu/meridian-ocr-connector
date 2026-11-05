@@ -32,6 +32,10 @@ const ACTION_LABELS: Record<string, string> = {
   "api_key.revoked": "API key revoked",
   "webhook.added": "Webhook added",
   "webhook.removed": "Webhook removed",
+  "intake.uploaded": "Batch uploaded",
+  "intake.grouped": "Document grouped automatically",
+  "intake.assigned": "Document assigned by a person",
+  "intake.discarded": "Document discarded",
   "retention.changed": "Retention changed",
   "retention.applied": "Old records deleted",
 };

@@ -10,6 +10,12 @@ def enqueue(organization_id: uuid.UUID, job_id: uuid.UUID) -> None:
     process_job.delay(str(organization_id), str(job_id))
 
 
+def enqueue_intake(organization_id: uuid.UUID, batch_id: uuid.UUID) -> None:
+    from .celery_app import process_intake
+
+    process_intake.delay(str(organization_id), str(batch_id))
+
+
 def enqueue_webhook(organization_id: uuid.UUID, delivery_id: uuid.UUID) -> None:
     from .celery_app import deliver_webhook
 

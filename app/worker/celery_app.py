@@ -10,7 +10,7 @@ from celery.signals import worker_process_init
 
 from ..core import config
 from ..pipeline import pii
-from . import jobs, retention, webhooks
+from . import intake, jobs, retention, webhooks
 
 app = Celery("meridian", broker=config.REDIS_URL)
 app.conf.update(
@@ -51,6 +51,11 @@ def deliver_webhook(self, organization_id: str, delivery_id: str) -> None:
         webhooks.deliver(organization_id, delivery_id)
     except webhooks.TryAgain as exc:
         raise self.retry(exc=exc, countdown=30 * 2 ** self.request.retries)
+
+
+@app.task(name="process_intake")
+def process_intake(organization_id: str, batch_id: str) -> None:
+    intake.process_batch(organization_id, batch_id)
 
 
 @app.task(name="apply_retention")
