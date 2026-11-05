@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createOrganization } from "@/lib/api";
+import { acceptInvitation, createOrganization, declineInvitation } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
-export type FormState = { error: string | null };
+export type FormState = { error: string | null; reload?: boolean };
 
 export async function startOrganization(_: FormState, form: FormData): Promise<FormState> {
   const name = String(form.get("name") ?? "").trim();
@@ -17,4 +17,21 @@ export async function startOrganization(_: FormState, form: FormData): Promise<F
   }
   revalidatePath("/workspace");
   return { error: null };
+}
+
+async function answer(form: FormData, call: typeof acceptInvitation | typeof declineInvitation): Promise<FormState> {
+  try {
+    await call(await apiContext(), String(form.get("invitation") ?? ""));
+  } catch {
+    return { error: "This invitation is no longer available." };
+  }
+  return { error: null, reload: true }; // the page loads again, with the new organization in place
+}
+
+export async function acceptInvitationAction(_: FormState, form: FormData): Promise<FormState> {
+  return answer(form, acceptInvitation);
+}
+
+export async function declineInvitationAction(_: FormState, form: FormData): Promise<FormState> {
+  return answer(form, declineInvitation);
 }

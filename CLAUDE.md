@@ -107,6 +107,7 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - **2026-11-02: Tenant isolation.** The organization comes from memberships, never a request body. Other tenants' records return 404. Each signed-in request runs as the restricted `meridian_app` role, because superusers skip row-level security. New tenant tables must add a policy in their migration.
 - **2026-11-04: The user asked to build the product issues before submission.** This replaces the fellowship-first order for those issues. The assignment still decides what's graded.
 - **Hosted vision:** off unless `VISION_MODEL` is set; otherwise unreadable scans return manual review.
+- **2026-11-05: Joining an organization needs an invitation and acceptance.** Invitations match the signed-in email, so Clerk must require a verified email address. There's no email sender yet, so people see invitations when they sign in. Expired ones are deleted nightly.
 
 ## Current status
 

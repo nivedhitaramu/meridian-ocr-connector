@@ -155,7 +155,12 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/organization` | The current organization |
 | `GET /v1/organization/members` | List members; supervisor or admin |
 | `PATCH /v1/organization` | Rename the organization; admin |
-| `POST /v1/organization/members` | Add someone who has already signed in; admin |
+| `POST /v1/organization/invitations` | Invite an email; admin. They join only after accepting |
+| `GET /v1/organization/invitations` | List invitations; admin |
+| `DELETE /v1/organization/invitations/{id}` | Cancel an invitation; admin |
+| `GET /v1/invitations` | Invitations to your own email |
+| `POST /v1/invitations/{id}/accept` | Join with the invited role |
+| `POST /v1/invitations/{id}/decline` | Decline an invitation |
 | `PATCH /v1/organization/members/{user_id}` | Change a role; admin |
 | `DELETE /v1/organization/members/{user_id}` | Remove a member; admin |
 | `POST /v1/shipments`, `GET /v1/shipments` | Create and list shipments; `q` searches references and `status` filters |

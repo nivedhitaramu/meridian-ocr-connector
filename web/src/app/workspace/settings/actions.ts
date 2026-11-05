@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { addMember, ApiError, changeRole, removeMember, renameOrganization, type Role, setApprovalSteps, setRetention } from "@/lib/api";
+import { ApiError, cancelInvitation, changeRole, inviteMember, removeMember, renameOrganization, type Role, setApprovalSteps, setRetention } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
 export type SettingsFormState = { error: string | null; saved: boolean };
@@ -64,20 +64,15 @@ export async function retentionAction(_: SettingsFormState, form: FormData): Pro
   return run(form, async (id) => setRetention(await apiContext(id), days), "That number can't be used.");
 }
 
-export async function addMemberAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
+export async function inviteAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
   const email = text(form, "email");
   const newRole = role(form);
   if (!email.includes("@") || !newRole) return { error: "Enter an email and choose a role.", saved: false };
-  try {
-    await addMember(await apiContext(text(form, "organization")), email, newRole);
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return { error: "We can't add this person yet. Ask them to sign in once, then try again.", saved: false };
-    }
-    return { error: message(error, "This person is already a member."), saved: false };
-  }
-  revalidatePath("/workspace", "layout");
-  return { error: null, saved: true };
+  return run(form, async (id) => inviteMember(await apiContext(id), email, newRole), "This person is already a member.");
+}
+
+export async function cancelInvitationAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
+  return run(form, async (id) => cancelInvitation(await apiContext(id), text(form, "invitation")), "This can't be cancelled.");
 }
 
 export async function changeRoleAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {

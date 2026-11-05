@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from .api import customer, deps, intake, reviews, shipments, tenancy
+from .api import customer, deps, intake, invitations, reviews, shipments, tenancy
 from .api.deps import current_user
 from .core import auth, config
 from .db import users
@@ -38,6 +38,7 @@ app.add_middleware(
 )
 instrument_fastapi(app)
 app.include_router(tenancy.router)
+app.include_router(invitations.router)
 app.include_router(shipments.router)
 app.include_router(reviews.router)
 app.include_router(customer.router)

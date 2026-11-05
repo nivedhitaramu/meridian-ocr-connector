@@ -80,6 +80,24 @@ class OrganizationMember(Base):
     role: Mapped[str] = mapped_column(String(20), default="clerk")
 
 
+class OrganizationInvitation(Base):
+    """Gives no access until the person with this email accepts. Deleted once answered."""
+    __tablename__ = "organization_invitations"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "email", name="uq_organization_invitations_tenant_email"),
+        CheckConstraint(_one_of("role", MEMBER_ROLES), name="role_allowed"),
+        Index("ix_organization_invitations_email", "email"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    email: Mapped[str] = mapped_column(String(320))  # always lower case
+    role: Mapped[str] = mapped_column(String(20))
+    invited_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created_at()
+
+
 class Shipment(Base):
     __tablename__ = "shipments"
     __table_args__ = (

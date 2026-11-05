@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { AuditEvent, Member, Organization, Role } from "@/lib/api";
+import type { AuditEvent, Invitation, Member, Organization, Role } from "@/lib/api";
 
-import { addMemberAction, approvalStepsAction, changeRoleAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
+import { approvalStepsAction, cancelInvitationAction, changeRoleAction, inviteAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
 
 const INITIAL: SettingsFormState = { error: null, saved: false };
 const ROLES: Role[] = ["clerk", "supervisor", "admin"];
@@ -22,6 +22,9 @@ const ACTION_LABELS: Record<string, string> = {
   "member.added": "Member added",
   "member.removed": "Member removed",
   "member.role_changed": "Role changed",
+  "member.invited": "Member invited",
+  "invitation.cancelled": "Invitation cancelled",
+  "invitation.declined": "Invitation declined",
   "session.started": "Signed in",
   "document.uploaded": "Document uploaded",
   "review.recorded": "Review recorded",
@@ -117,8 +120,8 @@ function RetentionForm({ organization }: { organization: Organization }) {
   );
 }
 
-function AddMemberForm({ organizationId }: { organizationId: string }) {
-  const [state, action, pending] = useActionState(addMemberAction, INITIAL);
+function InviteForm({ organizationId }: { organizationId: string }) {
+  const [state, action, pending] = useActionState(inviteAction, INITIAL);
   return (
     <form action={action} className="space-y-2">
       <input type="hidden" name="organization" value={organizationId} />
@@ -142,12 +145,64 @@ function AddMemberForm({ organizationId }: { organizationId: string }) {
           </select>
         </div>
         <Button type="submit" disabled={pending}>
-          {pending ? "Adding..." : "Add member"}
+          {pending ? "Inviting..." : "Invite"}
         </Button>
       </div>
-      <p className="text-muted-foreground text-xs">They need to have signed in once. There are no email invitations yet.</p>
-      <FormMessage state={state} success="Member added." />
+      <p className="text-muted-foreground text-xs">
+        We don&apos;t send email yet, so tell them to sign in with this address. They join only after they accept, and the invitation lasts 7 days.
+      </p>
+      <FormMessage state={state} success="Invited." />
     </form>
+  );
+}
+
+function InvitationRow({ invitation, organizationId }: { invitation: Invitation; organizationId: string }) {
+  const [state, action, pending] = useActionState(cancelInvitationAction, INITIAL);
+  return (
+    <TableRow>
+      <TableCell className="min-w-52 break-all whitespace-normal">
+        {invitation.email}
+        <FormMessage state={state} />
+      </TableCell>
+      <TableCell className="capitalize">{invitation.role}</TableCell>
+      <TableCell>{invitation.expired ? "Expired" : `Until ${invitation.expires_at.slice(0, 10)}`}</TableCell>
+      <TableCell className="text-right">
+        <form action={action}>
+          <input type="hidden" name="organization" value={organizationId} />
+          <input type="hidden" name="invitation" value={invitation.id} />
+          <Button type="submit" variant="ghost" size="sm" disabled={pending} aria-label={`Cancel invitation for ${invitation.email}`}>
+            Cancel
+          </Button>
+        </form>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function Invitations({ invitations, organizationId }: { invitations: Invitation[]; organizationId: string }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium">Invited</h3>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {invitations.map((invitation) => (
+              <InvitationRow key={invitation.id} invitation={invitation} organizationId={organizationId} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }
 
@@ -216,10 +271,12 @@ function ReadOnlyMembers({ members }: { members: Member[] }) {
 export function SettingsView({
   organization,
   members,
+  invitations,
   events,
 }: {
   organization: Organization;
   members: Member[] | null;
+  invitations: Invitation[] | null;
   events: AuditEvent[] | null;
 }) {
   const isAdmin = organization.role === "admin";
@@ -258,7 +315,8 @@ export function SettingsView({
             <p className="text-muted-foreground text-sm">Only supervisors and admins can see the team list.</p>
           ) : isAdmin ? (
             <>
-              <AddMemberForm organizationId={organization.id} />
+              <InviteForm organizationId={organization.id} />
+              {invitations?.length ? <Invitations invitations={invitations} organizationId={organization.id} /> : null}
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>

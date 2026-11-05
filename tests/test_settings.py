@@ -25,8 +25,14 @@ def sign_in(http, headers):
     return http.get("/v1/me", headers=headers).json()["id"]
 
 
-def add(http, email, role="clerk", headers=ALICE):
-    return http.post("/v1/organization/members", json={"email": email, "role": role}, headers=headers)
+def invite(http, email, role="clerk", headers=ALICE):
+    return http.post("/v1/organization/invitations", json={"email": email, "role": role}, headers=headers)
+
+
+def add(http, email, role="clerk"):
+    """Invite someone, and have them accept."""
+    invitation = invite(http, email, role).json()
+    return http.post(f"/v1/invitations/{invitation['id']}/accept", headers=bearer(email.split("@")[0]))
 
 
 def actions(http):
@@ -54,29 +60,11 @@ def test_blank_name_is_refused(client):  # noqa: F811
     assert http.patch("/v1/organization", json={"name": ""}, headers=ALICE).status_code == 422
 
 
-def test_add_member_by_email_any_case(client):  # noqa: F811
+def test_inviting_an_existing_member_is_a_409(client):  # noqa: F811
     http, _ = client
     start_org(http)
-    bob_id = sign_in(http, BOB)
-    response = add(http, " BOB@Example.com ", "supervisor")
-    assert response.status_code == 201 and response.json() == {"user_id": bob_id, "role": "supervisor"}
-    assert http.get("/v1/organization", headers=BOB).json()["role"] == "supervisor"
-    assert "member.added" in actions(http)
-
-
-def test_adding_someone_who_never_signed_in_is_a_404(client):  # noqa: F811
-    http, _ = client
-    start_org(http)
-    assert add(http, "stranger@example.com").status_code == 404
-    assert actions(http) == ["organization.created"]
-
-
-def test_adding_an_existing_member_is_a_409(client):  # noqa: F811
-    http, _ = client
-    start_org(http)
-    sign_in(http, BOB)
     add(http, "bob@example.com")
-    assert add(http, "bob@example.com").status_code == 409
+    assert invite(http, "bob@example.com").status_code == 409
 
 
 @pytest.mark.parametrize("role", ["clerk", "supervisor"])
@@ -86,7 +74,7 @@ def test_only_admins_can_change_the_organization(client, role):  # noqa: F811
     bob_id, _ = sign_in(http, BOB), sign_in(http, CARA)
     add(http, "bob@example.com", role)
     assert http.patch("/v1/organization", json={"name": "Taken"}, headers=BOB).status_code == 403
-    assert add(http, "cara@example.com", headers=BOB).status_code == 403
+    assert invite(http, "cara@example.com", headers=BOB).status_code == 403
     assert http.delete(f"/v1/organization/members/{bob_id}", headers=BOB).status_code == 403
 
 
