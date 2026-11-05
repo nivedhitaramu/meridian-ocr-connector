@@ -58,6 +58,7 @@ class Organization(Base):
     name: Mapped[str] = mapped_column(String(200))
     plan: Mapped[str] = mapped_column(String(50), default="trial")
     approval_steps: Mapped[list | None] = mapped_column(JsonValue)  # empty means one supervisor approval
+    retention_days: Mapped[int | None] = mapped_column(Integer)  # empty means records are kept
     created_at: Mapped[datetime] = _created_at()
 
 

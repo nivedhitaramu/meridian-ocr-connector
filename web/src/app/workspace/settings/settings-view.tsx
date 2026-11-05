@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AuditEvent, Member, Organization, Role } from "@/lib/api";
 
-import { addMemberAction, approvalStepsAction, changeRoleAction, removeMemberAction, renameAction, type SettingsFormState } from "./actions";
+import { addMemberAction, approvalStepsAction, changeRoleAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
 
 const INITIAL: SettingsFormState = { error: null, saved: false };
 const ROLES: Role[] = ["clerk", "supervisor", "admin"];
@@ -32,6 +32,8 @@ const ACTION_LABELS: Record<string, string> = {
   "api_key.revoked": "API key revoked",
   "webhook.added": "Webhook added",
   "webhook.removed": "Webhook removed",
+  "retention.changed": "Retention changed",
+  "retention.applied": "Old records deleted",
 };
 
 function FormMessage({ state, success }: { state: SettingsFormState; success?: string }) {
@@ -84,6 +86,28 @@ function ApprovalForm({ organization }: { organization: Organization }) {
       <FormMessage state={state} success="Saved." />
       <Button type="submit" variant="outline" disabled={pending}>
         {pending ? "Saving..." : "Save approval steps"}
+      </Button>
+    </form>
+  );
+}
+
+function RetentionForm({ organization }: { organization: Organization }) {
+  const [state, action, pending] = useActionState(retentionAction, INITIAL);
+  return (
+    <form action={action} className="max-w-md space-y-3">
+      <input type="hidden" name="organization" value={organization.id} />
+      <div className="space-y-1">
+        <label htmlFor="settings-retention" className="text-sm font-medium">
+          Keep shipment records for (days)
+        </label>
+        <Input id="settings-retention" name="days" inputMode="numeric" defaultValue={organization.retention_days ?? ""} aria-describedby="settings-retention-help" />
+        <p id="settings-retention-help" className="text-muted-foreground text-xs">
+          Leave empty to keep them. Otherwise, older shipments and their results are permanently deleted each night. The activity log stays.
+        </p>
+      </div>
+      <FormMessage state={state} success="Saved." />
+      <Button type="submit" variant="outline" disabled={pending}>
+        {pending ? "Saving..." : "Save retention"}
       </Button>
     </form>
   );
@@ -213,6 +237,9 @@ export function SettingsView({
             <RenameForm organization={organization} />
             <div className="mt-6">
               <ApprovalForm organization={organization} />
+            </div>
+            <div className="mt-6">
+              <RetentionForm organization={organization} />
             </div>
           </CardContent>
         </Card>

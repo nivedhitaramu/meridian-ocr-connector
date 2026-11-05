@@ -10,7 +10,7 @@ from celery.signals import worker_process_init
 
 from ..core import config
 from ..pipeline import pii
-from . import jobs, webhooks
+from . import jobs, retention, webhooks
 
 app = Celery("meridian", broker=config.REDIS_URL)
 app.conf.update(
@@ -21,7 +21,10 @@ app.conf.update(
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
-    beat_schedule={"sweep-abandoned-uploads": {"task": "sweep_uploads", "schedule": crontab(minute=0)}},
+    beat_schedule={
+        "sweep-abandoned-uploads": {"task": "sweep_uploads", "schedule": crontab(minute=0)},
+        "apply-retention": {"task": "apply_retention", "schedule": crontab(hour=2, minute=30)},
+    },
 )
 
 
@@ -48,6 +51,11 @@ def deliver_webhook(self, organization_id: str, delivery_id: str) -> None:
         webhooks.deliver(organization_id, delivery_id)
     except webhooks.TryAgain as exc:
         raise self.retry(exc=exc, countdown=30 * 2 ** self.request.retries)
+
+
+@app.task(name="apply_retention")
+def apply_retention() -> int:
+    return retention.apply_all()
 
 
 @app.task(name="sweep_uploads")

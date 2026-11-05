@@ -25,6 +25,8 @@ API_KEY_ROTATED = "api_key.rotated"
 API_KEY_REVOKED = "api_key.revoked"
 WEBHOOK_ADDED = "webhook.added"
 WEBHOOK_REMOVED = "webhook.removed"
+RETENTION_CHANGED = "retention.changed"
+RETENTION_APPLIED = "retention.applied"
 APPROVAL_SUBMITTED = "approval.submitted"
 APPROVAL_STEPS_CHANGED = "approval.steps_changed"
 
