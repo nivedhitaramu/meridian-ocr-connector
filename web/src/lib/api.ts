@@ -244,6 +244,31 @@ export const getTrends = (context: ApiContext, days = 30) => request<Trends>(con
 export const setRetention = (context: ApiContext, days: number | null) =>
   request<{ retention_days: number | null }>(context, "/v1/organization/retention", { method: "PATCH", body: JSON.stringify({ days }) });
 
+export type IntakeItem = {
+  id: string;
+  batch_id: string;
+  status: string;
+  document_type: string | null;
+  reference: string | null;
+  reason: string | null;
+  shipment_id: string | null;
+  created_at: string | null;
+};
+
+export const listIntake = (context: ApiContext) => request<IntakeItem[]>(context, "/v1/intake");
+
+export const uploadBatch = (context: ApiContext, files: Blob[]) => {
+  const body = new FormData();
+  for (const file of files) body.append("files", file, "upload"); // real filenames stay out of the request
+  return request<{ batch_id: string; files: number }>(context, "/v1/intake", { method: "POST", body });
+};
+
+export const assignIntake = (context: ApiContext, id: string, reference: string) =>
+  request<IntakeItem>(context, `/v1/intake/items/${encodeURIComponent(id)}/assign`, { method: "POST", body: JSON.stringify({ reference }) });
+
+export const discardIntake = (context: ApiContext, id: string) =>
+  request<void>(context, `/v1/intake/items/${encodeURIComponent(id)}`, { method: "DELETE" });
+
 export const getAnalytics = (context: ApiContext) => request<Analytics>(context, "/v1/analytics/summary");
 
 export const getObservability = (context: ApiContext) => request<Observability>(context, "/v1/observability/summary");

@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from .api import deps, reviews, shipments, tenancy, customer
+from .api import customer, deps, intake, reviews, shipments, tenancy
 from .api.deps import current_user
 from .core import auth, config
 from .db import users
@@ -41,6 +41,7 @@ app.include_router(tenancy.router)
 app.include_router(shipments.router)
 app.include_router(reviews.router)
 app.include_router(customer.router)
+app.include_router(intake.router)
 limiter = RateLimiter(config.RATE_LIMIT_PER_MINUTE)
 daily_limit = DailyLimit(config.DAILY_EXTRACT_LIMIT)
 _RESPONSE_MODEL = registry.active().response_model

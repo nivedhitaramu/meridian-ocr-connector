@@ -239,6 +239,23 @@ class WebhookDelivery(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class IntakeItem(Base):
+    """One file from a batch. It holds a reference and a reason code, never document text or a filename."""
+    __tablename__ = "intake_items"
+    __table_args__ = (Index("ix_intake_items_batch", "batch_id"), Index("ix_intake_items_tenant_status", "organization_id", "status"))
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    batch_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    storage_key: Mapped[str | None] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20), default="queued")
+    document_type: Mapped[str | None] = mapped_column(String(50))
+    reference: Mapped[str | None] = mapped_column(String(100))
+    reason: Mapped[str | None] = mapped_column(String(40))
+    shipment_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("shipments.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = _created_at()
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
     __table_args__ = (Index("ix_audit_events_tenant_created", "organization_id", "created_at"),)
