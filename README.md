@@ -164,6 +164,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/shipments/{id}/documents` | Upload a document for a later job |
 | `POST /v1/shipments/{id}/jobs` | Start a background check; returns 202 and supports `Idempotency-Key` |
 | `GET /v1/jobs/{id}` | Job status and saved results |
+| `GET /v1/configurations/{version}` | The fields and rules behind a saved result |
 | `GET /v1/exceptions` | Open mismatches and manual review cases |
 | `GET`, `POST /v1/jobs/{id}/reviews` | Read reviews, or record one with a reason; supervisor or admin |
 | `POST /v1/jobs/{id}/submit` | Ask for approval on an exception; any member |
@@ -192,6 +193,8 @@ To set it up:
 **Organizations:** a person's organization comes from their memberships, never a request body. `X-Organization-Id` picks one when they belong to several. Another organization's records return 404, and PostgreSQL row-level security enforces this even if a query forgets its filter.
 
 ## Business rules
+
+Meridian's document types, fields, units, prompt and reasons live in [`app/domains/meridian/config/`](app/domains/meridian/config/). The engine in `app/domains/configured.py` turns that file into a deterministic check, and the model never decides a status. A released version is never edited: a change goes in a new file, and each saved result names the version that produced it.
 
 | Status | When |
 |---|---|

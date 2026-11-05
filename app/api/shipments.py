@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from ..core import config
 from ..core.errors import CLIENT_MESSAGE
 from ..db import audit
+from ..domains import registry
 from ..db.models import Document, ExtractionResult, ProcessingJob, Shipment, VerificationResult
 from ..db.session import get_db
 from ..ingestion.storage import new_key, store
@@ -143,6 +144,15 @@ def start_job(shipment_id: uuid.UUID, idempotency_key: str | None = Header(defau
     return _accepted(job)
 
 
+@router.get("/configurations/{version}")
+def get_configuration(version: str, _: Member = Depends(current_member)):
+    """The fields and rules behind a saved result. These are product settings and hold no customer data."""
+    configuration = registry.configuration(version)
+    if configuration is None:
+        raise NotFound
+    return configuration
+
+
 @router.get("/jobs/{job_id}")
 def get_job(job_id: uuid.UUID, member: Member = Depends(current_member), session: Session = Depends(get_db)):
     job = session.scalar(select(ProcessingJob).where(
@@ -168,5 +178,6 @@ def get_job(job_id: uuid.UUID, member: Member = Depends(current_member), session
         "attempts": job.attempts, "error_class": job.error_class,
         "timings_ms": job.timings_ms, "entity_counts": job.entity_counts,
         "check": {"status": check.status, "reason": check.reason} if check else None,
+        "config_version": check.config_version if check else None,
         "documents": documents,
     }

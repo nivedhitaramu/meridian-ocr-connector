@@ -20,6 +20,7 @@ class PipelineInfo(BaseModel):
     used_vision_fallback: bool = False
     model: str | None = None
     prompt_version: str | None = None
+    config_version: str | None = None
     timings_ms: dict[str, int] = Field(default_factory=dict)
 
 
@@ -46,3 +47,5 @@ class Domain:
     check: Callable[[list[Any]], Any]
     build_document: Callable[..., Any]
     build_response: Callable[..., Any]
+
+    config_version: str | None = None  # names the configuration file that produced a result
