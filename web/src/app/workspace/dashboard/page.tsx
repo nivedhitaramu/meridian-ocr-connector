@@ -5,7 +5,7 @@ import { ListFilter } from "@/components/list-filter";
 import { EmptyState } from "@/components/states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAnalytics, listJobs } from "@/lib/api";
+import { getAnalytics, getTrends, listJobs } from "@/lib/api";
 import { organizationFor } from "@/lib/workspace";
 
 export const metadata = { title: "Dashboard | Meridian Intelligence" };
@@ -51,7 +51,7 @@ const JOB_STATUSES: [string, string][] = ["queued", "running", "succeeded", "fai
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ org?: string; q?: string; status?: string }> }) {
   const { org, q = "", status = "" } = await searchParams;
   const { organizationId, context } = await organizationFor(org);
-  const [summary, history] = await Promise.all([getAnalytics(context), listJobs(context, { q, status })]);
+  const [summary, history, trends] = await Promise.all([getAnalytics(context), listJobs(context, { q, status }), getTrends(context)]);
   if (summary.shipments === 0) {
     return (
       <div className="space-y-6">
@@ -79,6 +79,64 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Counts title="Check results" counts={summary.checks_by_status} />
         <Counts title="Jobs" counts={summary.jobs_by_status} label={jobLabel} />
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Last {trends.days} days</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-sm">
+            A person corrected {trends.corrected_checks} of {trends.checks} {trends.checks === 1 ? "check" : "checks"}. This counts only cases someone reviewed, so it isn&apos;t a full accuracy measure.
+          </p>
+          {trends.suppliers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead className="text-right">Shipments</TableHead>
+                    <TableHead className="text-right">Mismatches</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trends.suppliers.map((supplier) => (
+                    <TableRow key={supplier.name}>
+                      <TableCell>{supplier.name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{supplier.shipments}</TableCell>
+                      <TableCell className="text-right tabular-nums">{supplier.mismatches}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
+          {trends.daily.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Day</TableHead>
+                    <TableHead className="text-right">Jobs</TableHead>
+                    <TableHead className="text-right">Mismatches</TableHead>
+                    <TableHead className="text-right">Manual review</TableHead>
+                    <TableHead className="text-right">Failed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trends.daily.map((day) => (
+                    <TableRow key={day.date}>
+                      <TableCell className="whitespace-nowrap tabular-nums">{day.date}</TableCell>
+                      <TableCell className="text-right tabular-nums">{day.jobs}</TableCell>
+                      <TableCell className="text-right tabular-nums">{day.mismatches}</TableCell>
+                      <TableCell className="text-right tabular-nums">{day.manual_review}</TableCell>
+                      <TableCell className="text-right tabular-nums">{day.failed}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Processing history</CardTitle>

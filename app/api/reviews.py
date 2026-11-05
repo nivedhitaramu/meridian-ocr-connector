@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -14,14 +14,18 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import audit
-from ..db.models import Organization, ProcessingJob, ReviewAction, Shipment, VerificationResult
+from ..db.models import Document, ExtractionResult, Organization, ProcessingJob, ReviewAction, Shipment, VerificationResult
 from ..db.session import get_db
+from ..domains import registry
+from ..pipeline.pii import PLACEHOLDER_RE
 from .deps import Forbidden, Member, NotFound, ROLE_RANKS, current_member, request_id_for, require_role
 from .shipments import contains
 
 router = APIRouter(prefix="/v1")
 
 RECENT_JOBS = 200
+TREND_JOBS = 5000
+MINIMUM_RETENTION_DAYS = 7
 
 
 class NewReview(BaseModel):
@@ -33,6 +37,10 @@ class NewReview(BaseModel):
 def _now() -> datetime:
     """Approval state depends on review order, and the database default is only precise to the second on SQLite."""
     return datetime.now(timezone.utc)
+
+
+class Retention(BaseModel):
+    days: int | None = Field(ge=MINIMUM_RETENTION_DAYS, le=3650)
 
 
 class Submission(BaseModel):
@@ -165,6 +173,68 @@ def submit_for_approval(request: Request, job_id: uuid.UUID, body: Submission, m
                  request_id_for(request))
     session.commit()
     return _review_json(review)
+
+
+@router.patch("/organization/retention")
+def set_retention(request: Request, body: Retention, member: Member = Depends(require_role("admin")),
+                  session: Session = Depends(get_db)):
+    """Empty keeps records. A number deletes older shipments and their results every night."""
+    organization = session.get(Organization, member.organization_id)
+    organization.retention_days = body.days
+    audit.record(session, member.organization_id, member.user_id, audit.RETENTION_CHANGED,
+                 f"organization:{organization.id}", request_id_for(request))
+    session.commit()
+    return {"retention_days": body.days}
+
+
+@router.get("/analytics/trends")
+def analytics_trends(days: int = Query(30, ge=1, le=90), member: Member = Depends(current_member),
+                     session: Session = Depends(get_db)):
+    """Every number comes from saved rows. Person-only parties are never named as suppliers."""
+    organization = member.organization_id
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    rows = session.execute(
+        select(ProcessingJob, VerificationResult.status)
+        .outerjoin(VerificationResult, VerificationResult.job_id == ProcessingJob.id)
+        .where(ProcessingJob.organization_id == organization, ProcessingJob.created_at >= since)
+        .order_by(ProcessingJob.created_at.desc(), ProcessingJob.id).limit(TREND_JOBS)
+    ).all()
+
+    daily: dict[str, Counter[str]] = {}
+    for job, status in rows:
+        day = daily.setdefault(job.created_at.date().isoformat(), Counter())
+        day["jobs"] += 1
+        day["mismatches"] += status == "Mismatch"
+        day["manual_review"] += job.job_status == "manual_review"
+        day["failed"] += job.job_status == "failed"
+
+    party = registry.active().party_fields[0]
+    mismatched = {job.shipment_id: status == "Mismatch" for job, status in reversed(rows) if status}
+    suppliers: dict[str, Counter[str]] = {}
+    extractions = session.execute(
+        select(Document.shipment_id, ExtractionResult.fields)
+        .join(ExtractionResult, ExtractionResult.document_id == Document.id)
+        .where(Document.organization_id == organization, Document.shipment_id.in_(list(mismatched)))
+    ).all() if mismatched else []
+    for shipment_id, shipper in {(shipment_id, (fields or {}).get(party)) for shipment_id, fields in extractions}:
+        if shipper and not PLACEHOLDER_RE.search(shipper):
+            supplier = suppliers.setdefault(shipper, Counter())
+            supplier["shipments"] += 1
+            supplier["mismatches"] += mismatched[shipment_id]
+
+    checked = [job.id for job, status in rows if status]
+    corrected = set(session.scalars(select(ReviewAction.job_id).where(
+        ReviewAction.organization_id == organization, ReviewAction.correction.is_not(None),
+        ReviewAction.job_id.in_(checked)))) if checked else set()
+    return {
+        "days": days,
+        "daily": [{"date": date, "jobs": c["jobs"], "mismatches": c["mismatches"], "manual_review": c["manual_review"], "failed": c["failed"]}
+                  for date, c in sorted(daily.items(), reverse=True)],
+        "suppliers": [{"name": name, "shipments": c["shipments"], "mismatches": c["mismatches"]}
+                      for name, c in sorted(suppliers.items(), key=lambda item: (-item[1]["mismatches"], -item[1]["shipments"], item[0]))[:10]],
+        "checks": len(checked),
+        "corrected_checks": len(corrected),
+    }
 
 
 @router.patch("/organization/approval-steps")

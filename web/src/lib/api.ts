@@ -8,7 +8,7 @@ export type Me = {
   memberships: { organization_id: string; role: Role }[];
 };
 
-export type Organization = { id: string; name: string; plan: string; role: Role; approval_steps: Role[] };
+export type Organization = { id: string; name: string; plan: string; role: Role; approval_steps: Role[]; retention_days: number | null };
 
 export type Member = { user_id: string; email: string; role: Role };
 
@@ -230,6 +230,19 @@ export const removeWebhook = (context: ApiContext, id: string) =>
   request<void>(context, `/v1/webhooks/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 export const listDeliveries = (context: ApiContext) => request<Delivery[]>(context, "/v1/webhooks/deliveries");
+
+export type Trends = {
+  days: number;
+  daily: { date: string; jobs: number; mismatches: number; manual_review: number; failed: number }[];
+  suppliers: { name: string; shipments: number; mismatches: number }[];
+  checks: number;
+  corrected_checks: number;
+};
+
+export const getTrends = (context: ApiContext, days = 30) => request<Trends>(context, `/v1/analytics/trends?days=${days}`);
+
+export const setRetention = (context: ApiContext, days: number | null) =>
+  request<{ retention_days: number | null }>(context, "/v1/organization/retention", { method: "PATCH", body: JSON.stringify({ days }) });
 
 export const getAnalytics = (context: ApiContext) => request<Analytics>(context, "/v1/analytics/summary");
 

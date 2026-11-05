@@ -170,6 +170,8 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `POST /v1/jobs/{id}/submit` | Ask for approval on an exception; any member |
 | `PATCH /v1/organization/approval-steps` | Choose who must approve, in order; admin |
 | `GET /v1/analytics/summary` | Counts for the organization |
+| `GET /v1/analytics/trends` | Daily exceptions, suppliers and human corrections from saved data |
+| `PATCH /v1/organization/retention` | Choose how long shipment records are kept; admin |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
 | `/v1/api-keys`, `/v1/webhooks` | Customer API keys and signed webhooks; admin. See [docs/API.md](docs/API.md) |
@@ -227,6 +229,8 @@ Meridian's document types, fields, units, prompt and reasons live in [`app/domai
 | Telemetry uses an allow-list of keys | `app/core/telemetry.py` |
 | Clients get a generic error; CORS is limited to our page | `app/main.py` |
 | API key from the environment; `.env` is git-ignored | `.env.example` |
+
+**Retention:** records are kept unless an admin sets a limit of 7 to 3,650 days in **Settings**. A nightly task then deletes older shipments, their documents and results, and keeps the audit trail.
 
 **Known gap:** street lines aren't reliably masked, so a personal address on a shipment that isn't company-to-company could reach the model.
 
