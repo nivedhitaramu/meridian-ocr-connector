@@ -70,9 +70,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Shipments" value={summary.shipments} />
         <Stat label="Open exceptions" value={summary.open_exceptions} />
+        <Stat label="Waiting for your approval" value={summary.waiting_for_you} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Counts title="Check results" counts={summary.checks_by_status} />

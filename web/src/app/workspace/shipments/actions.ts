@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { addReview, ApiError, createShipment, startJob, uploadDocument } from "@/lib/api";
+import { addReview, ApiError, createShipment, startJob, submitForApproval, uploadDocument } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
 export type FormState = { error: string | null };
@@ -53,6 +53,18 @@ export async function startJobAction(_: FormState, form: FormData): Promise<Form
   return { error: null };
 }
 
+export async function submitAction(_: FormState, form: FormData): Promise<FormState> {
+  const reason = text(form, "reason");
+  if (!reason) return { error: "Say why this needs approval." };
+  try {
+    await submitForApproval(await apiContext(text(form, "organization")), text(form, "job"), reason);
+  } catch {
+    return { error: "We couldn't send this for approval. Try again." };
+  }
+  revalidatePath("/workspace", "layout");
+  return { error: null };
+}
+
 export async function reviewAction(_: FormState, form: FormData): Promise<FormState> {
   const reason = text(form, "reason");
   const action = text(form, "action");
@@ -67,7 +79,10 @@ export async function reviewAction(_: FormState, form: FormData): Promise<FormSt
       corrected_quantity: quantity ? Number(quantity) : null,
     });
   } catch (error) {
-    if (error instanceof ApiError && error.status === 403) return { error: "Only supervisors and admins can review." };
+    if (error instanceof ApiError && error.status === 403) return { error: "Your role can't approve this step." };
+    if (error instanceof ApiError && error.status === 409) {
+      return { error: "This can't be saved: the case is resolved, or someone else must approve this step." };
+    }
     return { error: "We couldn't save this review. Try again." };
   }
   revalidatePath("/workspace", "layout");

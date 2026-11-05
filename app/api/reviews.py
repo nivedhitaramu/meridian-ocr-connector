@@ -3,17 +3,19 @@ from __future__ import annotations
 
 import uuid
 from collections import Counter
+from dataclasses import dataclass, field
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel, Field
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import audit
-from ..db.models import ProcessingJob, ReviewAction, Shipment, VerificationResult
+from ..db.models import Organization, ProcessingJob, ReviewAction, Shipment, VerificationResult
 from ..db.session import get_db
-from .deps import Member, NotFound, current_member, request_id_for, require_role
+from .deps import Forbidden, Member, NotFound, ROLE_RANKS, current_member, request_id_for, require_role
 from .shipments import contains
 
 router = APIRouter(prefix="/v1")
@@ -25,6 +27,60 @@ class NewReview(BaseModel):
     action: Literal["resolve", "follow_up"]
     reason: str = Field(min_length=1, max_length=300)
     corrected_quantity: int | None = Field(default=None, ge=0)
+
+
+class Submission(BaseModel):
+    reason: str = Field(min_length=1, max_length=300)
+
+
+class ApprovalSteps(BaseModel):
+    steps: list[Literal["supervisor", "admin"]] = Field(min_length=1, max_length=3)
+
+    @field_validator("steps")
+    @classmethod
+    def seniority_only_rises(cls, steps: list[str]) -> list[str]:
+        if any(ROLE_RANKS[a] > ROLE_RANKS[b] for a, b in zip(steps, steps[1:])):
+            raise ValueError("steps must not go down in seniority")
+        return steps
+
+
+@dataclass
+class Approval:
+    """Where a case stands, worked out from its saved reviews so nothing can drift out of step."""
+    steps: list[str]
+    approvers: list[uuid.UUID] = field(default_factory=list)
+    submitted: bool = False
+    resolved: bool = False
+
+    @property
+    def next_role(self) -> str:
+        return self.steps[min(len(self.approvers), len(self.steps) - 1)]
+
+    @property
+    def is_last_step(self) -> bool:
+        return len(self.approvers) + 1 >= len(self.steps)
+
+    def can_act(self, member: Member) -> bool:
+        return (not self.resolved and ROLE_RANKS[member.role] >= ROLE_RANKS[self.next_role]
+                and member.user_id not in self.approvers)
+
+
+def _steps(session: Session, member: Member) -> list[str]:
+    return session.get(Organization, member.organization_id).approval_steps or ["supervisor"]
+
+
+def _approval(reviews: list[ReviewAction], steps: list[str]) -> Approval:
+    state = Approval(steps=steps)
+    for review in reviews:
+        if review.action == "submit":
+            state.submitted = True
+        elif review.action == "approve":
+            state.approvers.append(review.reviewer_id)
+        elif review.action == "follow_up":  # back to the start: earlier approvals no longer stand
+            state.approvers, state.submitted = [], False
+        elif review.action == "resolve":
+            state.resolved = True
+    return state
 
 
 def _job(session: Session, member: Member, job_id: uuid.UUID) -> ProcessingJob:
@@ -55,14 +111,65 @@ def _open_exceptions(session: Session, member: Member, limit: int) -> list[tuple
     return exceptions[:limit]
 
 
+def _reviews_by_job(session: Session, member: Member, job_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[ReviewAction]]:
+    grouped: dict[uuid.UUID, list[ReviewAction]] = {job_id: [] for job_id in job_ids}
+    rows = session.scalars(select(ReviewAction).where(
+        ReviewAction.organization_id == member.organization_id, ReviewAction.job_id.in_(job_ids))
+        .order_by(ReviewAction.created_at, ReviewAction.id))
+    for row in rows:
+        grouped[row.job_id].append(row)
+    return grouped
+
+
 @router.get("/exceptions")
 def list_exceptions(limit: int = Query(50, ge=1, le=200), member: Member = Depends(current_member),
                     session: Session = Depends(get_db)):
-    return [{"job_id": str(job.id), "shipment_id": str(job.shipment_id), "reference": reference,
-             "job_status": job.job_status, "error_class": job.error_class,
-             "check_status": check.status if check else None, "reason": check.reason if check else None,
-             "created_at": job.created_at.isoformat() if job.created_at else None}
-            for job, reference, check in _open_exceptions(session, member, limit)]
+    rows = _open_exceptions(session, member, limit)
+    steps = _steps(session, member)
+    reviews = _reviews_by_job(session, member, [row[0].id for row in rows])
+    items = []
+    for job, reference, check in rows:
+        state = _approval(reviews[job.id], steps)
+        items.append({
+            "job_id": str(job.id), "shipment_id": str(job.shipment_id), "reference": reference,
+            "job_status": job.job_status, "error_class": job.error_class,
+            "check_status": check.status if check else None, "reason": check.reason if check else None,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "approval": {"required": len(steps), "approved": len(state.approvers), "next_role": state.next_role,
+                         "submitted": state.submitted, "can_act": state.can_act(member), "is_last_step": state.is_last_step},
+            "history": [_review_json(review) for review in reviews[job.id]],
+        })
+    return items
+
+
+@router.post("/jobs/{job_id}/submit", status_code=201)
+def submit_for_approval(request: Request, job_id: uuid.UUID, body: Submission, member: Member = Depends(current_member),
+                        session: Session = Depends(get_db)):
+    """Any member can raise a case. This records who asked and why, and approves nothing."""
+    job = _job(session, member, job_id)
+    rows = list(session.scalars(select(ReviewAction).where(ReviewAction.job_id == job.id)
+                                .order_by(ReviewAction.created_at, ReviewAction.id)))
+    if _approval(rows, ["supervisor"]).resolved:
+        return JSONResponse(status_code=409, content={"error": "This case is already resolved."})
+    review = ReviewAction(organization_id=member.organization_id, job_id=job.id, reviewer_id=member.user_id,
+                          action="submit", reason=body.reason.strip())
+    session.add(review)
+    session.flush()
+    audit.record(session, member.organization_id, member.user_id, audit.APPROVAL_SUBMITTED, f"review:{review.id}",
+                 request_id_for(request))
+    session.commit()
+    return _review_json(review)
+
+
+@router.patch("/organization/approval-steps")
+def set_approval_steps(request: Request, body: ApprovalSteps, member: Member = Depends(require_role("admin")),
+                       session: Session = Depends(get_db)):
+    organization = session.get(Organization, member.organization_id)
+    organization.approval_steps = body.steps
+    audit.record(session, member.organization_id, member.user_id, audit.APPROVAL_STEPS_CHANGED,
+                 f"organization:{organization.id}", request_id_for(request))
+    session.commit()
+    return {"approval_steps": body.steps}
 
 
 @router.get("/jobs")
@@ -99,9 +206,21 @@ def add_review(request: Request, job_id: uuid.UUID, body: NewReview, member: Mem
                session: Session = Depends(get_db)):
     """The model's result stays as it was. A correction is saved beside it, with who made it and why."""
     job = _job(session, member, job_id)
+    rows = list(session.scalars(select(ReviewAction).where(ReviewAction.job_id == job.id)
+                                .order_by(ReviewAction.created_at, ReviewAction.id)))
+    state = _approval(rows, _steps(session, member))
+    if state.resolved:
+        return JSONResponse(status_code=409, content={"error": "This case is already resolved."})
+    action = body.action
+    if action == "resolve":
+        if ROLE_RANKS[member.role] < ROLE_RANKS[state.next_role]:
+            raise Forbidden
+        if member.user_id in state.approvers:
+            return JSONResponse(status_code=409, content={"error": "Someone else must approve this step."})
+        action = "resolve" if state.is_last_step else "approve"
     correction = {"total_quantity": body.corrected_quantity} if body.corrected_quantity is not None else None
     review = ReviewAction(organization_id=member.organization_id, job_id=job.id, reviewer_id=member.user_id,
-                          action=body.action, reason=body.reason.strip(), correction=correction)
+                          action=action, reason=body.reason.strip(), correction=correction)
     session.add(review)
     session.flush()
     audit.record(session, member.organization_id, member.user_id, audit.REVIEW_RECORDED, f"review:{review.id}",
@@ -117,11 +236,16 @@ def analytics_summary(member: Member = Depends(current_member), session: Session
         ProcessingJob.organization_id == organization).group_by(ProcessingJob.job_status)).all()
     checks = session.execute(select(VerificationResult.status, func.count()).where(
         VerificationResult.organization_id == organization).group_by(VerificationResult.status)).all()
+    open_rows = _open_exceptions(session, member, RECENT_JOBS)
+    steps = _steps(session, member)
+    reviews = _reviews_by_job(session, member, [row[0].id for row in open_rows])
+    states = [_approval(rows, steps) for rows in reviews.values()]
     return {
         "shipments": session.scalar(select(func.count()).select_from(Shipment).where(Shipment.organization_id == organization)),
         "jobs_by_status": {status: count for status, count in jobs},
         "checks_by_status": {status: count for status, count in checks},
-        "open_exceptions": len(_open_exceptions(session, member, RECENT_JOBS)),
+        "open_exceptions": len(open_rows),
+        "waiting_for_you": sum(1 for state in states if state.can_act(member) and (state.submitted or state.approvers)),
     }
 
 

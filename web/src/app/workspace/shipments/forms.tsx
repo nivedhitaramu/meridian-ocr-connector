@@ -6,7 +6,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { createShipmentAction, type FormState, reviewAction, startJobAction, uploadAction } from "./actions";
+import { createShipmentAction, type FormState, reviewAction, startJobAction, submitAction, uploadAction } from "./actions";
 
 const INITIAL: FormState = { error: null };
 
@@ -98,7 +98,28 @@ export function RefreshWhileRunning({ active }: { active: boolean }) {
   return null;
 }
 
-export function ReviewForm({ organizationId, jobId }: { organizationId: string; jobId: string }) {
+export function SubmitForm({ organizationId, jobId }: { organizationId: string; jobId: string }) {
+  const [state, action, pending] = useActionState(submitAction, INITIAL);
+  return (
+    <form action={action} className="space-y-3">
+      <input type="hidden" name="organization" value={organizationId} />
+      <input type="hidden" name="job" value={jobId} />
+      <div className="space-y-1">
+        <label htmlFor={`submit-${jobId}`} className="text-sm font-medium">
+          Why does this need approval?
+        </label>
+        <Input id={`submit-${jobId}`} name="reason" required maxLength={300} />
+        <p className="text-muted-foreground text-xs">Describe what was checked. Leave out names and contact details.</p>
+      </div>
+      <Button type="submit" disabled={pending}>
+        {pending ? "Sending..." : "Send for approval"}
+      </Button>
+      <Problem error={state.error} />
+    </form>
+  );
+}
+
+export function ReviewForm({ organizationId, jobId, lastStep = true }: { organizationId: string; jobId: string; lastStep?: boolean }) {
   const [state, action, pending] = useActionState(reviewAction, INITIAL);
   return (
     <form action={action} className="space-y-3">
@@ -119,7 +140,7 @@ export function ReviewForm({ organizationId, jobId }: { organizationId: string; 
           <Input id={`quantity-${jobId}`} name="corrected_quantity" inputMode="numeric" pattern="[0-9]*" className="w-40" />
         </div>
         <Button type="submit" name="action" value="resolve" disabled={pending}>
-          Resolve
+          {lastStep ? "Resolve" : "Approve this step"}
         </Button>
         <Button type="submit" name="action" value="follow_up" variant="outline" disabled={pending}>
           Needs follow-up

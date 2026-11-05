@@ -8,7 +8,7 @@ export type Me = {
   memberships: { organization_id: string; role: Role }[];
 };
 
-export type Organization = { id: string; name: string; plan: string; role: Role };
+export type Organization = { id: string; name: string; plan: string; role: Role; approval_steps: Role[] };
 
 export type Member = { user_id: string; email: string; role: Role };
 
@@ -127,6 +127,8 @@ export type ExceptionItem = {
   check_status: string | null;
   reason: string | null;
   created_at: string | null;
+  approval: { required: number; approved: number; next_role: Role; submitted: boolean; can_act: boolean; is_last_step: boolean };
+  history: { id: string; action: string; reason: string; created_at: string | null }[];
 };
 
 export type Analytics = {
@@ -134,6 +136,7 @@ export type Analytics = {
   jobs_by_status: Record<string, number>;
   checks_by_status: Record<string, number>;
   open_exceptions: number;
+  waiting_for_you: number;
 };
 
 export type Observability = {
@@ -195,6 +198,12 @@ export const addReview = (
   jobId: string,
   review: { action: "resolve" | "follow_up"; reason: string; corrected_quantity: number | null },
 ) => request<{ id: string }>(context, `/v1/jobs/${encodeURIComponent(jobId)}/reviews`, { method: "POST", body: JSON.stringify(review) });
+
+export const submitForApproval = (context: ApiContext, jobId: string, reason: string) =>
+  request<{ id: string }>(context, `/v1/jobs/${encodeURIComponent(jobId)}/submit`, { method: "POST", body: JSON.stringify({ reason }) });
+
+export const setApprovalSteps = (context: ApiContext, steps: Role[]) =>
+  request<{ approval_steps: Role[] }>(context, "/v1/organization/approval-steps", { method: "PATCH", body: JSON.stringify({ steps }) });
 
 export const getAnalytics = (context: ApiContext) => request<Analytics>(context, "/v1/analytics/summary");
 

@@ -57,6 +57,7 @@ class Organization(Base):
     id: Mapped[uuid.UUID] = _id()
     name: Mapped[str] = mapped_column(String(200))
     plan: Mapped[str] = mapped_column(String(50), default="trial")
+    approval_steps: Mapped[list | None] = mapped_column(JsonValue)  # empty means one supervisor approval
     created_at: Mapped[datetime] = _created_at()
 
 
