@@ -166,6 +166,8 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `GET /v1/jobs/{id}` | Job status and saved results |
 | `GET /v1/exceptions` | Open mismatches and manual review cases |
 | `GET`, `POST /v1/jobs/{id}/reviews` | Read reviews, or record one with a reason; supervisor or admin |
+| `POST /v1/jobs/{id}/submit` | Ask for approval on an exception; any member |
+| `PATCH /v1/organization/approval-steps` | Choose who must approve, in order; admin |
 | `GET /v1/analytics/summary` | Counts for the organization |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |

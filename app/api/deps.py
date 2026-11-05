@@ -64,13 +64,15 @@ def current_member(request: Request, user: User = Depends(current_user), session
     return member
 
 
+ROLE_RANKS = {"clerk": 0, "supervisor": 1, "admin": 2}
+assert set(ROLE_RANKS) == set(MEMBER_ROLES)
+
+
 def require_role(minimum: str):
     """Roles rank clerk, then supervisor, then admin."""
-    ranks = {"clerk": 0, "supervisor": 1, "admin": 2}
-    assert set(ranks) == set(MEMBER_ROLES)
 
     def check(member: Member = Depends(current_member)) -> Member:
-        if ranks[member.role] < ranks[minimum]:
+        if ROLE_RANKS[member.role] < ROLE_RANKS[minimum]:
             raise Forbidden
         return member
     return check

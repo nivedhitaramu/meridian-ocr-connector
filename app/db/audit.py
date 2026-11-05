@@ -20,6 +20,8 @@ MEMBER_ROLE_CHANGED = "member.role_changed"
 SESSION_STARTED = "session.started"
 DOCUMENT_UPLOADED = "document.uploaded"  # for #20
 REVIEW_RECORDED = "review.recorded"  # for #27
+APPROVAL_SUBMITTED = "approval.submitted"
+APPROVAL_STEPS_CHANGED = "approval.steps_changed"
 
 
 def record(session: Session, organization_id: uuid.UUID, actor_id: uuid.UUID | None, action: str,

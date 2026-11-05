@@ -111,6 +111,77 @@ def test_clerk_can_see_but_not_review(api, monkeypatch):
     assert review(http, job_id, headers=BOB).status_code == 403
 
 
+def test_mismatch_moves_from_clerk_to_supervisor_to_resolved(api, monkeypatch):
+    http, make_session, _, delivered = api
+    org = start_org(http)
+    add_member(http, make_session, org, BOB, "clerk")
+    add_member(http, make_session, org, CARA, "supervisor")
+    mismatch(monkeypatch)
+    job_id = run_job(http, delivered)
+    assert http.post(f"/v1/jobs/{job_id}/submit", headers=BOB, json={"reason": "Counted 118 on the dock."}).status_code == 201
+    assert http.get("/v1/analytics/summary", headers=CARA).json()["waiting_for_you"] == 1
+    assert http.get("/v1/analytics/summary", headers=BOB).json()["waiting_for_you"] == 0
+    item = http.get("/v1/exceptions", headers=CARA).json()[0]
+    assert item["approval"]["submitted"] and item["approval"]["can_act"]
+    assert review(http, job_id, headers=BOB).status_code == 403
+    assert review(http, job_id, headers=CARA).status_code == 201
+    assert http.get("/v1/exceptions", headers=CARA).json() == []
+    assert [row["action"] for row in http.get(f"/v1/jobs/{job_id}/reviews", headers=CARA).json()] == ["submit", "resolve"]
+    actions = [event["action"] for event in http.get("/v1/audit-events", headers=ALICE).json()]
+    assert "approval.submitted" in actions and "review.recorded" in actions
+    assert review(http, job_id, headers=CARA).status_code == 409
+
+
+def test_every_configured_step_must_be_approved_by_a_different_person(api, monkeypatch):
+    http, make_session, _, delivered = api
+    org = start_org(http)
+    add_member(http, make_session, org, CARA, "supervisor")
+    assert http.patch("/v1/organization/approval-steps", headers=ALICE, json={"steps": ["supervisor", "admin"]}).status_code == 200
+    mismatch(monkeypatch)
+    job_id = run_job(http, delivered)
+    assert review(http, job_id, headers=CARA).json()["action"] == "approve"
+    assert review(http, job_id, headers=CARA).status_code == 403
+    assert http.get("/v1/exceptions", headers=ALICE).json()[0]["approval"]["next_role"] == "admin"
+    assert review(http, job_id, headers=ALICE).json()["action"] == "resolve"
+    assert http.get("/v1/exceptions", headers=ALICE).json() == []
+
+
+def test_one_person_cannot_approve_two_steps(api, monkeypatch):
+    http, _, _, delivered = api
+    start_org(http)
+    http.patch("/v1/organization/approval-steps", headers=ALICE, json={"steps": ["supervisor", "admin"]})
+    mismatch(monkeypatch)
+    job_id = run_job(http, delivered)
+    assert review(http, job_id).json()["action"] == "approve"
+    assert review(http, job_id).status_code == 409
+
+
+def test_follow_up_cancels_earlier_approvals(api, monkeypatch):
+    http, make_session, _, delivered = api
+    org = start_org(http)
+    add_member(http, make_session, org, CARA, "supervisor")
+    http.patch("/v1/organization/approval-steps", headers=ALICE, json={"steps": ["supervisor", "admin"]})
+    mismatch(monkeypatch)
+    job_id = run_job(http, delivered)
+    review(http, job_id, headers=CARA)
+    assert review(http, job_id, headers=ALICE, action="follow_up").status_code == 201
+    assert http.get("/v1/exceptions", headers=ALICE).json()[0]["approval"]["approved"] == 0
+
+
+@pytest.mark.parametrize("steps", [[], ["clerk"], ["admin", "supervisor"]])
+def test_bad_approval_steps_are_refused(api, steps):
+    http, _, _, _ = api
+    start_org(http)
+    assert http.patch("/v1/organization/approval-steps", headers=ALICE, json={"steps": steps}).status_code == 422
+
+
+def test_only_admins_set_approval_steps(api):
+    http, make_session, _, _ = api
+    org = start_org(http)
+    add_member(http, make_session, org, CARA, "supervisor")
+    assert http.patch("/v1/organization/approval-steps", headers=CARA, json={"steps": ["admin"]}).status_code == 403
+
+
 @pytest.mark.parametrize("body", [{"reason": ""}, {"action": "delete"}, {"corrected_quantity": -1}])
 def test_bad_reviews_are_refused(api, monkeypatch, body):
     http, _, _, delivered = api
