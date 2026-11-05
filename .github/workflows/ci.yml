@@ -124,7 +124,8 @@ jobs:
       - run: npm run build
 
   browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.55 can't install its browser on ubuntu-latest, which is now 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: "1"
