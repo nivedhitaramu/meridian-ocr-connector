@@ -103,6 +103,7 @@ export type Job = {
   timings_ms: Record<string, number> | null;
   entity_counts: Record<string, number> | null;
   check: { status: string; reason: string } | null;
+  config_version: string | null;
   documents: JobDocument[];
 };
 

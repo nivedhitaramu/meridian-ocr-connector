@@ -64,7 +64,7 @@ export function Result({ job }: { job: Job }) {
         {!job.check && job.error_class ? <p>{errorLabel(job.error_class)} Check the paper documents by hand.</p> : null}
         {job.documents.length > 0 ? <Comparison documents={job.documents} /> : null}
         {job.documents.length > 0 ? (
-          <p className="text-muted-foreground text-xs">Weight is shown for reference, and never changes the status. Source files are deleted after each check.</p>
+          <p className="text-muted-foreground text-xs">Weight is shown for reference, and never changes the status. Source files are deleted after each check.{job.config_version ? ` Rules version: ${job.config_version}.` : ""}</p>
         ) : null}
       </CardContent>
     </Card>

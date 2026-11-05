@@ -79,7 +79,8 @@ def _save_results(session: Session, job: ProcessingJob, documents: list[Document
             quantity_unit=result.get("quantity_unit"), prompt_version=data["pipeline"].get("prompt_version"),
         ))
     session.add(VerificationResult(organization_id=job.organization_id, job_id=job.id,
-                                   status=data["check"]["status"], reason=data["check"]["reason"]))
+                                   status=data["check"]["status"], reason=data["check"]["reason"],
+                                   config_version=data["pipeline"].get("config_version")))
     job.timings_ms = data["pipeline"].get("timings_ms")
     job.entity_counts = data["pii"].get("entity_counts")
     job.used_vision_fallback = bool(data["pipeline"].get("used_vision_fallback"))

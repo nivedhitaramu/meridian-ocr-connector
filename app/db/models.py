@@ -171,6 +171,7 @@ class VerificationResult(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     status: Mapped[str] = mapped_column(String(20))
     reason: Mapped[str] = mapped_column(String(300))  # the rule engine's template, never model text
+    config_version: Mapped[str | None] = mapped_column(String(40))
     created_at: Mapped[datetime] = _created_at()
 
 
