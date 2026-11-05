@@ -112,21 +112,23 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Last updated:** 2026-11-05.
 
-**On `main`:** the full pipeline, `.eml` route, Streamlit page, Clerk sign-in, tenant isolation, audit events, shipments, Celery jobs, human review, approvals, customer API and webhooks, versioned configuration, personal GSTIN masking, retention, trends, document grouping and all Next.js screens (PRs through #71). All 29 remaining issues are still open, because their screens or decisions are outstanding.
+**On `main`:** the full pipeline, `.eml` route, Streamlit page, Clerk sign-in, tenant isolation, audit events, shipments, Celery jobs, human review, approvals, customer API and webhooks, versioned configuration, personal GSTIN masking, retention, trends, document grouping and all Next.js screens (PRs through #74). 27 issues are still open, because their evidence or decisions are outstanding.
 
 **Verified by running**
 - **Real model (2026-11-04):** `gemini-3.1-flash-lite`, prompt `meridian-v2`: 100% on field, type and rule for the test sheet and holdout. The first holdout run was 94.0% on fields and 87.5% on rules, and its fixes mean the holdout is no longer unseen. This predates the #68 configuration change, which kept the prompt and parsing identical on 40,000 random cases.
 - **Website (2026-11-04):** one real Clerk account signed in, created an organization and a shipment, uploaded documents and got one Incomplete result. This used SQLite and a local thread in place of Redis and Celery, kept outside the repo.
 - **Customer API (2026-11-05):** `scripts/customer_example.py` submitted S01 and received a signed webhook over real HTTP, using the mock model, a throwaway database and threads instead of Celery.
 - **Grouping (2026-11-05):** `scripts/evaluate_grouping.py`: 34 of 34 clean documents grouped and 0 wrong; 0 of 34 damaged documents grouped. The patterns were written after seeing these samples, so this isn't an unseen score.
-- **CI on every PR:** tests with PostgreSQL, including row-level security; the Docker stack, with a worker ping; the demo image; the web app. CI uses `LLM_PROVIDER=mock`.
+- **New documents (2026-11-05):** 16 new synthetic documents, one run with the real model: fields 91/96 (94.8%), type 16/16, rules 10/10. All five misses were over-masking. Masking changed afterwards (#73) and the real model hasn't been re-run. The same author wrote these documents and the code.
+- **Real stack (#74, in CI):** Celery, Redis and PostgreSQL ran a full check, recovered from a killed worker with one result, delivered a signed webhook, ran intake and ran retention under row-level security.
+- **Provider terms:** Gemini's paid tier doesn't use prompts to improve products, and logs them for a limited time.
+- **Browser tests (2026-11-05):** `web/e2e`, 14 tests, passed three runs in a row on this machine. They use the real API and the mock model, SQLite, threads in place of Celery, and a stand-in for Clerk, so they don't prove real sign-in or row-level security.
+- **CI on every PR:** tests with PostgreSQL, including row-level security; the Docker stack; the demo image; the web app; the browser tests. CI uses `LLM_PROVIDER=mock`.
 
 **Not verified**
-- Match, Mismatch, exceptions, approvals, dashboards, API access, intake and retention on the website with a real account
-- A full check, a webhook, intake or the retention schedule through real Celery and Redis
+- The website with a real Clerk account beyond the one Incomplete check
 - Row-level security during a signed-in browser session
-- Any deployed environment, and accuracy on new unseen documents
-- That the LLM provider's terms exclude training on prompts
+- Any deployed environment
 
 **Remaining known issues**
 1. **Company filter is word-based:** a company without a listed word gets masked, which lowers shipper and receiver accuracy.
@@ -136,17 +138,16 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 5. **Other invoice formats:** one uploaded invoice in a different format returned no shipper or quantity. That result hasn't been compared with its original.
 6. **Webhooks:** DNS rebinding isn't fully closed and secrets are stored readable, both noted for #33.
 7. **Intake:** files waiting for review are removed after about an hour, and the website limits a batch to about 11 MB.
+8. **Page stuck after an action:** on the shipment and intake pages, updating in place sometimes left the page stuck even though the server had answered. They now do a full reload. The root cause was never found, and settings, exceptions and API access still update in place. Those passed the browser tests.
 
 **Git safety:** stage files by name.
 
 **Issues by what they need**
-- **Signed-in testing:** #15, #23-#30, #39, #40.
-- **A host choice:** #6, then #11 and #12.
-- **New documents and terms check:** #5.
-- **Test Clerk keys in GitHub:** #31.
-- **Decisions:** #32-#37, #41, #43, #44, and single sign-on in #45. #38 is built for uploads, and the mailbox is #37.
-- **Celery check:** #19 still needs the kill-a-worker test.
+- **Real sign-in test:** #15, #24.
+- **Browser evidence, ready to review:** #23, #25-#31, #39, #40.
+- **Deployment on Google Cloud Run (recommended, user's account):** #6, then #11 and #12.
+- **Decisions:** #32-#37, #41, #43, #44, and single sign-on in #45. #42 is merged. #38 is built for uploads, and the mailbox is #37.
 
-**Next step:** choose a host for the live demo (#6, `docs/DEPLOY.md`), test the signed-in screens, then re-score on new documents (#5).
+**Next step:** deploy the live demo (#6), correct `docs/DEPLOY.md` once that works, then test real sign-in.
 
-**Open questions for the team:** submission deadline, live demo host, and when the AWS and decision issues should start.
+**Open questions for the team:** submission deadline, and when the AWS and decision issues should start.

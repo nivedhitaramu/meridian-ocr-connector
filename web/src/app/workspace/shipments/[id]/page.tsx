@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError, getJob, getShipment } from "@/lib/api";
 import { organizationFor } from "@/lib/workspace";
 
-import { RefreshWhileRunning, StartCheckForm, UploadForm } from "../forms";
+import { ReloadWhenFinished, StartCheckForm, UploadForm } from "../forms";
 import { Result } from "../result";
 
 export default async function ShipmentPage({
@@ -28,7 +28,7 @@ export default async function ShipmentPage({
   const waiting = shipment.documents.filter((d) => d.processing_status === "pending").length;
   return (
     <div className="space-y-6">
-      <RefreshWhileRunning active={running} />
+      <ReloadWhenFinished statusUrl={running && latest ? `/workspace/shipments/${shipment.id}/status?org=${organizationId}&job=${latest.id}` : null} />
       <h1 className="text-2xl font-semibold tracking-tight break-words">{shipment.reference}</h1>
       <Card>
         <CardHeader>
@@ -39,7 +39,7 @@ export default async function ShipmentPage({
           <p className="text-sm">
             {waiting === 0 ? "No documents are waiting." : `${waiting} ${waiting === 1 ? "document is" : "documents are"} ready to check.`}
           </p>
-          <StartCheckForm organizationId={organizationId} shipmentId={shipment.id} disabled={waiting === 0 || running} />
+          <StartCheckForm organizationId={organizationId} shipmentId={shipment.id} disabled={waiting === 0 || running} firstAttempt={crypto.randomUUID()} />
         </CardContent>
       </Card>
       {job ? (

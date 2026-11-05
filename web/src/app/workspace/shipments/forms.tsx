@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,14 +38,18 @@ export function NewShipmentForm({ organizationId }: { organizationId: string }) 
   );
 }
 
+/** A full load after a change on the shipment page. Updating the page in place could leave it stuck. */
+export function useReloadAfter(state: { reload?: boolean }) {
+  useEffect(() => {
+    if (state.reload) window.location.reload();
+  }, [state]);
+}
+
 export function UploadForm({ organizationId, shipmentId }: { organizationId: string; shipmentId: string }) {
   const [state, action, pending] = useActionState(uploadAction, INITIAL);
-  const form = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (!pending && !state.error) form.current?.reset();
-  }, [pending, state]);
+  useReloadAfter(state);
   return (
-    <form ref={form} action={action} className="space-y-2">
+    <form action={action} className="space-y-2">
       <input type="hidden" name="organization" value={organizationId} />
       <input type="hidden" name="shipment" value={shipmentId} />
       <div className="flex flex-wrap items-end gap-3">
@@ -57,7 +60,7 @@ export function UploadForm({ organizationId, shipmentId }: { organizationId: str
           <Input id="document-file" name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" />
         </div>
         <Button type="submit" variant="outline" disabled={pending}>
-          {pending ? "Uploading..." : "Upload"}
+          {pending || state.reload ? "Uploading..." : "Upload"}
         </Button>
       </div>
       <p className="text-muted-foreground text-xs">PDF, PNG or JPEG, up to 10 MB. Synthetic documents only.</p>
@@ -66,35 +69,51 @@ export function UploadForm({ organizationId, shipmentId }: { organizationId: str
   );
 }
 
-export function StartCheckForm({ organizationId, shipmentId, disabled }: { organizationId: string; shipmentId: string; disabled: boolean }) {
-  const [attempt, setAttempt] = useState(() => crypto.randomUUID());
-  // The key stops one click starting two jobs. Once the API has answered, the next click is a new request.
-  const [state, action, pending] = useActionState(async (previous: FormState, form: FormData) => {
-    const result = await startJobAction(previous, form);
-    setAttempt(crypto.randomUUID());
-    return result;
-  }, INITIAL);
+export function StartCheckForm({ organizationId, shipmentId, disabled, firstAttempt }: { organizationId: string; shipmentId: string; disabled: boolean; firstAttempt: string }) {
+  const [state, action, pending] = useActionState(startJobAction, INITIAL);
+  useReloadAfter(state);
+  // The key stops one click starting two jobs. Once the API has answered, the action hands back the next key.
+  const attempt = state.nextAttempt ?? firstAttempt;
   return (
     <form action={action} className="space-y-2">
       <input type="hidden" name="organization" value={organizationId} />
       <input type="hidden" name="shipment" value={shipmentId} />
       <input type="hidden" name="attempt" value={attempt} />
       <Button type="submit" disabled={disabled || pending}>
-        {pending ? "Starting..." : "Check quantities"}
+        {pending || state.reload ? "Starting..." : "Check quantities"}
       </Button>
       <Problem error={state.error} />
     </form>
   );
 }
 
-/** Keeps the page current while a job runs. Saved results still come from the server each time. */
-export function RefreshWhileRunning({ active }: { active: boolean }) {
-  const router = useRouter();
+/**
+ * Asks whether work is still running, and loads the page again when it stops, so results always come from the server.
+ * It's a full load because router.refresh() could leave this page showing old results until someone reloaded.
+ */
+export function ReloadWhenFinished({ statusUrl }: { statusUrl: string | null }) {
   useEffect(() => {
-    if (!active) return;
-    const timer = setInterval(() => router.refresh(), 3000);
-    return () => clearInterval(timer);
-  }, [active, router]);
+    if (!statusUrl) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = async () => {
+      try {
+        const response = await fetch(statusUrl, { cache: "no-store" });
+        if (response.ok && !((await response.json()) as { running: boolean }).running) {
+          window.location.reload();
+          return;
+        }
+      } catch {
+        // A dropped connection isn't a result. Keep asking.
+      }
+      if (!stopped) timer = setTimeout(check, 3000);
+    };
+    timer = setTimeout(check, 3000);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [statusUrl]);
   return null;
 }
 

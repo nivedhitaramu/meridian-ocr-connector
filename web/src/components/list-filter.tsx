@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -52,9 +50,10 @@ export function ListFilter({
         Apply
       </Button>
       {q || status ? (
-        <Link href={`${action}?org=${organizationId}`} className={buttonVariants({ variant: "ghost" })}>
+        // A full page load, like the form itself, so the search box empties too.
+        <a href={`${action}?org=${organizationId}`} className={buttonVariants({ variant: "ghost" })}>
           Clear
-        </Link>
+        </a>
       ) : null}
     </form>
   );
