@@ -1,19 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { ApiError, assignIntake, discardIntake, uploadBatch } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
-export type IntakeState = { error: string | null };
+export type IntakeState = { error: string | null; reload?: boolean };
 
 const text = (form: FormData, field: string) => String(form.get(field) ?? "").trim();
 
-function done(): IntakeState {
-  revalidatePath("/workspace/intake");
-  revalidatePath("/workspace/shipments");
-  return { error: null };
-}
+// The page loads again, so it shows what the server saved.
+const done = (): IntakeState => ({ error: null, reload: true });
 
 export async function uploadBatchAction(_: IntakeState, form: FormData): Promise<IntakeState> {
   const files = form.getAll("files").filter((file): file is File => file instanceof File && file.size > 0);

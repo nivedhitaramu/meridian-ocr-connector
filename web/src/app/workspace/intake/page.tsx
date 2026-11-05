@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 import { DOCUMENT_LABELS, when } from "@/components/labels";
 import { EmptyState } from "@/components/states";
@@ -7,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { listIntake } from "@/lib/api";
 import { organizationFor } from "@/lib/workspace";
 
-import { RefreshWhileRunning } from "../shipments/forms";
+import { ReloadWhenFinished } from "../shipments/forms";
 import { ReviewItem, UploadBatchForm } from "./forms";
 
 export const metadata = { title: "Intake | Meridian Intelligence" };
@@ -41,7 +40,7 @@ export default async function IntakePage({ searchParams }: { searchParams: Promi
   const others = items.filter((item) => item.status !== "needs_review");
   return (
     <div className="space-y-6">
-      <RefreshWhileRunning active={items.some((item) => item.status === "queued")} />
+      <ReloadWhenFinished statusUrl={items.some((item) => item.status === "queued") ? `/workspace/intake/status?org=${organizationId}` : null} />
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Intake</h1>
         <p className="text-muted-foreground text-sm">
@@ -89,9 +88,9 @@ export default async function IntakePage({ searchParams }: { searchParams: Promi
                     <TableCell>{DOCUMENT_LABELS[item.document_type ?? ""] ?? "Not read yet"}</TableCell>
                     <TableCell>
                       {item.shipment_id ? (
-                        <Link href={`/workspace/shipments/${item.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
+                        <a href={`/workspace/shipments/${item.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
                           {item.reference ?? "Open shipment"}
-                        </Link>
+                        </a>
                       ) : (
                         item.reference
                       )}

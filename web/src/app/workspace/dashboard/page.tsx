@@ -168,9 +168,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   {history.map((job) => (
                     <TableRow key={job.id}>
                       <TableCell>
-                        <Link href={`/workspace/shipments/${job.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
+                        <a href={`/workspace/shipments/${job.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
                           {job.reference}
-                        </Link>
+                        </a>
                       </TableCell>
                       <TableCell>
                         <JobBadge status={job.status} />

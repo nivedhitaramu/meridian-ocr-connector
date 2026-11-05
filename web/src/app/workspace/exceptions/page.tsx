@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 import { CheckBadge, errorLabel, JobBadge, when } from "@/components/labels";
 import { EmptyState } from "@/components/states";
@@ -39,9 +38,9 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
         <Card key={item.job_id}>
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2">
-              <Link href={`/workspace/shipments/${item.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
+              <a href={`/workspace/shipments/${item.shipment_id}?org=${organizationId}`} className="underline-offset-4 hover:underline">
                 {item.reference}
-              </Link>
+              </a>
               {item.check_status ? <CheckBadge status={item.check_status} /> : <JobBadge status={item.job_status} />}
             </CardTitle>
           </CardHeader>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 import { when } from "@/components/labels";
 import { ListFilter } from "@/components/list-filter";
@@ -64,9 +63,9 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
                 {shipments.map((shipment) => (
                   <TableRow key={shipment.id}>
                     <TableCell>
-                      <Link href={`/workspace/shipments/${shipment.id}?org=${organizationId}`} className="font-medium underline-offset-4 hover:underline">
+                      <a href={`/workspace/shipments/${shipment.id}?org=${organizationId}`} className="font-medium underline-offset-4 hover:underline">
                         {shipment.reference}
-                      </Link>
+                      </a>
                     </TableCell>
                     <TableCell className="capitalize">{shipment.status}</TableCell>
                     <TableCell className="whitespace-nowrap tabular-nums">{when(shipment.created_at)}</TableCell>

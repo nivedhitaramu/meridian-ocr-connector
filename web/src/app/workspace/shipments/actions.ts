@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { addReview, ApiError, createShipment, startJob, submitForApproval, uploadDocument } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
-export type FormState = { error: string | null };
+export type FormState = { error: string | null; nextAttempt?: string; reload?: boolean };
 
 const text = (form: FormData, field: string) => String(form.get(field) ?? "").trim();
 
@@ -36,8 +36,7 @@ export async function uploadAction(_: FormState, form: FormData): Promise<FormSt
     }
     return { error: "We couldn't upload this file. Try again." };
   }
-  revalidatePath(`/workspace/shipments/${shipment}`);
-  return { error: null };
+  return { error: null, reload: true }; // the page loads again, so it shows what the server saved
 }
 
 export async function startJobAction(_: FormState, form: FormData): Promise<FormState> {
@@ -46,11 +45,11 @@ export async function startJobAction(_: FormState, form: FormData): Promise<Form
     // One click, one job, even if the form is sent twice.
     await startJob(await apiContext(text(form, "organization")), shipment, text(form, "attempt"));
   } catch (error) {
-    if (error instanceof ApiError && error.status === 409) return { error: "Upload a document first." };
-    return { error: "We can't start this check right now. Try again soon." };
+    const nextAttempt = crypto.randomUUID();
+    if (error instanceof ApiError && error.status === 409) return { error: "Upload a document first.", nextAttempt };
+    return { error: "We can't start this check right now. Try again soon.", nextAttempt };
   }
-  revalidatePath(`/workspace/shipments/${shipment}`);
-  return { error: null };
+  return { error: null, reload: true };
 }
 
 export async function submitAction(_: FormState, form: FormData): Promise<FormState> {

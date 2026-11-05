@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { useReloadAfter } from "../shipments/forms";
 import { assignAction, discardAction, type IntakeState, uploadBatchAction } from "./actions";
 
 const INITIAL: IntakeState = { error: null };
@@ -19,12 +20,9 @@ function Problem({ error }: { error: string | null }) {
 
 export function UploadBatchForm({ organizationId }: { organizationId: string }) {
   const [state, action, pending] = useActionState(uploadBatchAction, INITIAL);
-  const form = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (!pending && !state.error) form.current?.reset();
-  }, [pending, state]);
+  useReloadAfter(state);
   return (
-    <form ref={form} action={action} className="space-y-2">
+    <form action={action} className="space-y-2">
       <input type="hidden" name="organization" value={organizationId} />
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-full space-y-1 sm:w-96">
@@ -34,7 +32,7 @@ export function UploadBatchForm({ organizationId }: { organizationId: string }) 
           <Input id="intake-files" name="files" type="file" multiple required accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" />
         </div>
         <Button type="submit" disabled={pending}>
-          {pending ? "Uploading..." : "Upload and group"}
+          {pending || state.reload ? "Uploading..." : "Upload and group"}
         </Button>
       </div>
       <p className="text-muted-foreground text-xs">Up to 20 PDF, PNG or JPEG files, about 10 MB in total here. Synthetic documents only.</p>
@@ -46,6 +44,8 @@ export function UploadBatchForm({ organizationId }: { organizationId: string }) 
 export function ReviewItem({ organizationId, id, suggestion, label }: { organizationId: string; id: string; suggestion: string; label: string }) {
   const [assigned, assign, assigning] = useActionState(assignAction, INITIAL);
   const [discarded, discard, discarding] = useActionState(discardAction, INITIAL);
+  useReloadAfter(assigned);
+  useReloadAfter(discarded);
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-end gap-3">
@@ -59,7 +59,7 @@ export function ReviewItem({ organizationId, id, suggestion, label }: { organiza
             <Input id={`reference-${id}`} name="reference" defaultValue={suggestion} required maxLength={100} className="w-56" />
           </div>
           <Button type="submit" disabled={assigning}>
-            {assigning ? "Saving..." : "Assign"}
+            {assigning || assigned.reload ? "Saving..." : "Assign"}
           </Button>
         </form>
         <form action={discard}>
