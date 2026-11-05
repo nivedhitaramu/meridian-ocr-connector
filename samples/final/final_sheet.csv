@@ -1,0 +1,17 @@
+file,expected_document_type,invoice_number,shipper_name,receiver_name,shipment_date,total_quantity,total_weight_kg
+F01_invoice.pdf,commercial_invoice,KP/24-25/0918,Kaveri Polymers Pvt Ltd,Meridian Freight Warehouse,2026-04-12,1250,540.25
+F01_packing.pdf,packing_list,KP/24-25/0918,Kaveri Polymers Pvt Ltd,Meridian Freight Warehouse,2026-04-12,1250,540.25
+F01_receipt.pdf,delivery_receipt,KP/24-25/0918,Kaveri Polymers Pvt Ltd,Meridian Freight Warehouse,2026-04-12,1250,
+F02_invoice.pdf,commercial_invoice,NWC2026-77,Northwind Cotton,Meridian Freight Warehouse,2026-04-15,84,1190.0
+F02_packing.pdf,packing_list,NWC2026-77,Northwind Cotton,Meridian Freight Warehouse,2026-04-15,84,1190.0
+F03_invoice.pdf,commercial_invoice,SB-40117,Sagar Bulk Traders,Meridian Freight Warehouse,2026-04-18,300,15000.0
+F03_packing.pdf,packing_list,SB-40117,Sagar Bulk Traders,Meridian Freight Warehouse,2026-04-18,301,15000.0
+F04_invoice.pdf,commercial_invoice,ORB/EXP/5512,Orbis Textiles,Meridian Freight Warehouse,2026-04-21,72,1499.98
+F04_packing.pdf,packing_list,ORB/EXP/5512,Orbis Textiles,Meridian Freight Warehouse,2026-04-21,72,1499.98
+F05_invoice.png,commercial_invoice,DLX-88203,Delta Lane Exports,Meridian Freight Warehouse,2026-04-24,196,2204.5
+F05_packing.png,packing_list,DLX-88203,Delta Lane Exports,Meridian Freight Warehouse,2026-04-24,196,2204.5
+F05_receipt.pdf,delivery_receipt,DLX-88203,Delta Lane Exports,Meridian Freight Warehouse,2026-04-24,196,
+F06_invoice.pdf,commercial_invoice,HW-30094,Hillwood Chemicals Ltd,Meridian Freight Warehouse,2026-04-27,60,12000.0
+F06_packing.pdf,packing_list,HW-30094,Hillwood Chemicals Ltd,Meridian Freight Warehouse,2026-04-27,60,12000.0
+F07_invoice.pdf,commercial_invoice,ZN/2026/1044,Zenith Forge,Meridian Freight Warehouse,2026-04-29,48,760.5
+F07_packing.pdf,packing_list,ZN/2026/1044,Zenith Forge,Meridian Freight Warehouse,2026-04-29,48,760.5

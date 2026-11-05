@@ -1,1 +1,5 @@
 deploy/demo/start.sh text eol=lf
+*.pdf binary
+*.png binary
+*.jpg binary
+*.eml -text

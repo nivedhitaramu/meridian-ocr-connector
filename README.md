@@ -238,7 +238,7 @@ Meridian's document types, fields, units, prompt and reasons live in [`app/domai
 
 To protect people's names, a company named only with words like "Mills" or "Global", with no word like "Ltd", gets masked too. That can lower shipper and receiver accuracy.
 
-Hosted vision stays off unless `VISION_MODEL` is set. Before using a hosted provider, confirm its terms say prompts aren't used for training.
+Hosted vision stays off unless `VISION_MODEL` is set. Before using a hosted provider, confirm its terms say prompts aren't used for training. As of 2026-11-05, [Gemini's terms](https://ai.google.dev/gemini-api/terms), effective March 23, 2026, say paid services don't use prompts or responses to improve Google's products. Google still logs them for a limited time to detect abuse, so masking stays necessary. Unpaid services can be used for training and read by human reviewers, so use a key on a billing account.
 
 ![A document with personal data painted out for the vision fallback](docs/redaction_example.png)
 
@@ -290,7 +290,17 @@ python scripts/evaluate.py --sheet samples/holdout/holdout_sheet.csv --cases sam
 | Document-type accuracy | 14/14 = 100% |
 | Rule accuracy | 8/8 = 100% |
 
-**Read these numbers with care.** The first holdout run scored 94.0% on fields and 87.5% on rules. It found three bugs, which were fixed before this run, so these documents are no longer truly unseen. All documents are synthetic, so real scans may score lower.
+**Final set (documents made after the prompt and filters were frozen):** `scripts/make_final_set.py` writes 16 documents and 10 rule cases to `samples/final/`, with new layouts, labels, companies and units, one scanned pair, a pair printing two totals, and a personal GSTIN. These were scored once, on 2026-11-05.
+
+| Metric | Final set with the real model, first and only run |
+|---|---|
+| Field match after normalization | 91/96 = 94.8% |
+| Document-type accuracy | 16/16 = 100% |
+| Rule accuracy | 10/10 = 100% |
+
+All five misses were over-masking: four shipper names and one reference were replaced by a placeholder, which protects people at the cost of a field. No total was wrong, and no status changed. The same person wrote these documents and the code, so this isn't an independent test, and the documents are still synthetic.
+
+**Read the earlier numbers with care.** The first holdout run scored 94.0% on fields and 87.5% on rules. It found three bugs, which were fixed before this run, so these documents are no longer truly unseen. All documents are synthetic, so real scans may score lower.
 
 With the API running:
 
