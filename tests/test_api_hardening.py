@@ -20,7 +20,7 @@ def client(monkeypatch):
 def test_long_pdf_is_refused_not_cut_short(monkeypatch, tmp_path):
     import pdf2image
 
-    monkeypatch.setattr(pdf2image, "pdfinfo_from_path", lambda path: {"Pages": 6})
+    monkeypatch.setattr(pdf2image, "pdfinfo_from_path", lambda path, **kwargs: {"Pages": 6})
     monkeypatch.setattr(pdf2image, "convert_from_path", lambda *a, **k: pytest.fail("should not render"))
     with pytest.raises(PipelineError) as e:
         ocr.load_pages(tmp_path / "long.pdf", "pdf")

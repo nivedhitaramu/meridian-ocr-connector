@@ -203,6 +203,13 @@ test("intake groups a clear pair, and sends a lone document to a person", async 
   await expect(bob.getByRole("link", { name: "E2E-ASSIGNED" })).toBeVisible();
 });
 
+test("pages can't be framed by another site", async () => {
+  const headers = (await alice.request.get("/workspace")).headers();
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-powered-by"]).toBeUndefined();
+});
+
 test("every main screen passes automated accessibility checks", async () => {
   for (const screen of SCREENS) {
     await alice.goto(screen);

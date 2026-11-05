@@ -13,7 +13,7 @@ from ..core import config
 def engine() -> Engine:
     if not config.DATABASE_URL:
         raise RuntimeError("DATABASE_URL is not set")
-    return create_engine(config.DATABASE_URL, pool_pre_ping=True)
+    return create_engine(config.DATABASE_URL, pool_pre_ping=True, hide_parameters=True)
 
 
 def new_session() -> Session:

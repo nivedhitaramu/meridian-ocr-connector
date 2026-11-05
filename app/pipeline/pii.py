@@ -5,12 +5,17 @@ request and is cleared in the pipeline's `finally` block. It is never logged.
 """
 from __future__ import annotations
 
+import logging
 import re
 from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 
 from ..core import config
+
+# At DEBUG, Presidio writes the words it's looking at to its log. Keep that off whatever the app's log level is.
+logging.getLogger("presidio-analyzer").setLevel(logging.WARNING)
+logging.getLogger("presidio-anonymizer").setLevel(logging.WARNING)
 
 # Entities we mask. DATE_TIME is deliberately absent: the shipment date is a field.
 MASKED_ENTITIES = [

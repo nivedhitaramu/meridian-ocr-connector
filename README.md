@@ -134,7 +134,7 @@ Example response shape:
     "ocr_engine": "tesseract",
     "used_vision_fallback": false,
     "model": "gemini-3.1-flash-lite",
-    "prompt_version": "meridian-v2",
+    "prompt_version": "meridian-v3",
     "timings_ms": {"ocr": 640, "pii": 38, "llm": 1102, "rule": 3}
   },
   "documents": []
@@ -259,7 +259,7 @@ The page shows the last request's four stages, durations, status and entity coun
 
 ## Evaluation
 
-Measured on 2026-11-04 with `gemini-3.1-flash-lite` on a paid plan, using prompt `meridian-v2`.
+Measured on 2026-11-04 with `gemini-3.1-flash-lite` on a paid plan, using prompt `meridian-v2`. On 2026-11-05 the security review added `meridian-v3`, which treats document text as data. The test sheet still scored 100% on fields, types and rules, but those documents helped tune the system, so that only shows the change didn't break them. See [the security review](docs/SECURITY_REVIEW.md).
 
 | Metric | Result with the real model |
 |---|---|

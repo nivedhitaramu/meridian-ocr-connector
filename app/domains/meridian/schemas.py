@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ..configured import Check, QuantityTotal, Workflow, normalize_date, parse_number
 
-ACTIVE_CONFIG = "meridian-1"
+ACTIVE_CONFIG = "meridian-2"
 
 workflow = Workflow.load(Path(__file__).parent / "config" / f"{ACTIVE_CONFIG}.json")
 

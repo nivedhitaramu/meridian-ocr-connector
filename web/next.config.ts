@@ -6,7 +6,17 @@ import type { NextConfig } from "next";
 // trusts the test issuer in e2e/, and normal builds never include it.
 const browserTests = process.env.E2E_AUTH_STUB === "1";
 
+const SECURITY_HEADERS = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Strict-Transport-Security", value: "max-age=31536000" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
+
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  headers: async () => [{ source: "/:path*", headers: SECURITY_HEADERS }],
   // Server actions default to 1 MB. Documents can be 10 MB, and the API enforces that limit.
   experimental: { serverActions: { bodySizeLimit: "11mb" } },
   ...(browserTests

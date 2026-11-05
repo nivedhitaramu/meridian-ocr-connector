@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 
-from . import llm, ocr, pii, vision
+from . import guard, llm, ocr, pii, vision
 from ..core import config
 from ..domains import registry
 from ..domains.base import Domain, PIIInfo, PipelineInfo
@@ -27,6 +27,9 @@ def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: Reques
             masked_text, spans = pii.mask(result.text, vault, vision.signature_band_spans(result, domain))
             delta = {k: v - before.get(k, 0) for k, v in vault.entity_counts.items() if v - before.get(k, 0)}
             attrs.update(entity_counts=delta, placeholder_count=vault.placeholder_count)
+
+        if guard.gives_orders(masked_text):  # checked for scans too, because the model would read the same words
+            raise PipelineError("manual_review_instructions")
 
         protected = False  # set only once this document's redaction or masking checks have passed
         with tr.stage("llm", slot=slot, prompt_version=domain.prompt_version) as attrs:
