@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from ..core import config
 from ..core.errors import PipelineError
-from ..db.models import Document, ExtractionResult, ProcessingJob, Shipment, VerificationResult
+from ..db.models import Document, ExtractionResult, ProcessingJob, Shipment, UsageRecord, VerificationResult
 from ..db.session import new_session
 from ..db.tenancy import set_scope
 from ..ingestion.storage import store
@@ -51,7 +51,13 @@ def _delete_files(documents: list[Document]) -> None:
         document.deleted_at = _now()
 
 
-def _finish(session: Session, job: ProcessingJob, documents: list[Document], status: str, error_class: str | None) -> None:
+def _finish(session: Session, job: ProcessingJob, documents: list[Document], status: str, error_class: str | None,
+            pipeline=None) -> None:
+    """Every finished job that read documents is metered, whatever its outcome, because the work was done."""
+    if documents:
+        session.add(UsageRecord(organization_id=job.organization_id, job_id=job.id, documents=len(documents),
+                                model_calls=getattr(pipeline, "model_calls", 0), input_tokens=getattr(pipeline, "prompt_tokens", 0),
+                                output_tokens=getattr(pipeline, "completion_tokens", 0)))
     job.job_status = status
     job.error_class = error_class
     job.finished_at = _now()
@@ -123,7 +129,7 @@ def process(organization_id: str, job_id: str) -> None:
             return
 
         _save_results(session, job, documents, response)
-        _finish(session, job, documents, "succeeded", None)
+        _finish(session, job, documents, "succeeded", None, response.pipeline)
 
 
 def sweep_abandoned() -> int:

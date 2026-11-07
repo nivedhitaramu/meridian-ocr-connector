@@ -3,14 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Job, JobDocument } from "@/lib/api";
 
-const FIELDS: [string, string][] = [
-  ["invoice_number", "Invoice or reference"],
-  ["shipper_name", "Shipper"],
-  ["receiver_name", "Receiver"],
-  ["shipment_date", "Date"],
-  ["total_quantity", "Total quantity"],
-  ["total_weight_kg", "Total weight (kg)"],
-];
+const FIELD_LABELS: Record<string, string> = {
+  invoice_number: "Invoice or reference",
+  shipper_name: "Shipper",
+  receiver_name: "Receiver",
+  shipment_date: "Date",
+  total_quantity: "Total quantity",
+  total_weight_kg: "Total weight (kg)",
+};
+
+/** Fields come from the workflow's configuration, so another workflow's fields show without code changes. */
+function fieldsOf(documents: JobDocument[]): [string, string][] {
+  const keys = [...new Set(documents.flatMap((document) => Object.keys(document.fields)))];
+  return keys.map((key) => [key, FIELD_LABELS[key] ?? key.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase())]);
+}
 
 function fieldValue(document: JobDocument, field: string): string {
   const value = document.fields[field];
@@ -32,7 +38,7 @@ function Comparison({ documents }: { documents: JobDocument[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {FIELDS.map(([field, label]) => {
+          {fieldsOf(documents).map(([field, label]) => {
             const differs = new Set(documents.map((d) => fieldValue(d, field))).size > 1;
             return (
               <TableRow key={field}>

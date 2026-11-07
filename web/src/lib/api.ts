@@ -46,6 +46,19 @@ export const getMe = (context: ApiContext) => request<Me>(context, "/v1/me");
 
 export const getOrganization = (context: ApiContext) => request<Organization>(context, "/v1/organization");
 
+export type Usage = {
+  plan: string;
+  month: string;
+  limit: number | null;
+  remaining: number | null;
+  documents: number;
+  model_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+};
+
+export const getUsage = (context: ApiContext) => request<Usage>(context, "/v1/usage");
+
 export const listMembers = (context: ApiContext) => request<Member[]>(context, "/v1/organization/members");
 
 export type AuditEvent = {

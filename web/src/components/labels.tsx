@@ -28,6 +28,8 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   commercial_invoice: "Commercial invoice",
   packing_list: "Packing list",
   delivery_receipt: "Delivery receipt",
+  purchase_order: "Purchase order",
+  goods_receipt: "Goods received note",
   unknown: "Unknown document",
 };
 
