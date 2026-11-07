@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from typing import Literal
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
@@ -27,6 +28,7 @@ class NewKey(BaseModel):
 
 class NewWebhook(BaseModel):
     url: str = Field(min_length=1, max_length=500)
+    format: Literal["event", "wms_receipt"] = "event"  # app/connectors/formats.py
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -91,7 +93,7 @@ def revoke_key(request: Request, key_id: uuid.UUID, member: Member = Depends(adm
 
 
 def _webhook_json(endpoint: WebhookEndpoint) -> dict:
-    return {"id": str(endpoint.id), "url": endpoint.url, "created_at": _iso(endpoint.created_at)}
+    return {"id": str(endpoint.id), "url": endpoint.url, "format": endpoint.format, "created_at": _iso(endpoint.created_at)}
 
 
 @router.get("/webhooks")
@@ -108,7 +110,7 @@ def add_webhook(request: Request, body: NewWebhook, member: Member = Depends(adm
     if not webhook_url.acceptable(url, resolve=False):
         return JSONResponse(status_code=422, content={"error": "Use a public HTTPS address."})
     secret = "whsec_" + secrets.token_urlsafe(32)
-    endpoint = WebhookEndpoint(organization_id=member.organization_id, url=url, secret=secret)
+    endpoint = WebhookEndpoint(organization_id=member.organization_id, url=url, secret=secret, format=body.format)
     session.add(endpoint)
     session.flush()
     audit.record(session, member.organization_id, member.user_id, audit.WEBHOOK_ADDED, f"webhook:{endpoint.id}", request_id_for(request))

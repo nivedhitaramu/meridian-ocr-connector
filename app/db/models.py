@@ -271,6 +271,7 @@ class WebhookEndpoint(Base):
     organization_id: Mapped[uuid.UUID] = _tenant()
     url: Mapped[str] = mapped_column(String(500))
     secret: Mapped[str] = mapped_column(String(100))  # needed to sign each delivery, so it can't be a hash
+    format: Mapped[str] = mapped_column(String(30), default="event", server_default="event")  # see app/connectors
     created_at: Mapped[datetime] = _created_at()
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
