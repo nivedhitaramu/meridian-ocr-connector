@@ -1,0 +1,13 @@
+environment             = "staging"
+domain_name             = "staging.meridian.example.com" # replace
+hosted_zone_id          = "Z0000000000000000000"         # replace
+alert_email             = "alerts@example.com"           # replace
+clerk_issuer            = "https://example.clerk.accounts.dev" # replace
+vpc_cidr                = "10.40.0.0/16"
+enable_network_firewall = false # saves about USD 580 a month; security groups still limit traffic to HTTPS
+db_instance_class       = "db.t4g.micro"
+db_multi_az             = false
+redis_node_type         = "cache.t4g.micro"
+api_count               = 1
+worker_count            = 1
+web_count               = 1

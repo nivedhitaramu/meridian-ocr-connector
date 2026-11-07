@@ -1,0 +1,50 @@
+# #34: merging to main deploys to staging; production waits for an approval.
+#
+# Off until the AWS account exists. To turn it on, set these in the repository's settings:
+#   Variables: AWS_REGION, AWS_DEPLOY_ROLE_STAGING, AWS_DEPLOY_ROLE_PRODUCTION (IAM roles trusted for this repo through
+#              GitHub's OIDC provider), CLERK_PUBLISHABLE_KEY_STAGING, CLERK_PUBLISHABLE_KEY_PRODUCTION
+#   Environments: "staging", and "production" with required reviewers, which is the approval step.
+# Rolling back: run this workflow by hand with the previous commit as image_tag. Migrations must stay
+# backward compatible (add first, remove in a later release), so older code still runs on the newer schema.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Commit to deploy, for a rollback. Leave empty for this commit."
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: vars.AWS_DEPLOY_ROLE_STAGING != ''
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+      image_tag: ${{ inputs.image_tag || github.sha }}
+      build: ${{ inputs.image_tag == '' }}
+      role: ${{ vars.AWS_DEPLOY_ROLE_STAGING }}
+      clerk_publishable_key: ${{ vars.CLERK_PUBLISHABLE_KEY_STAGING }}
+      check_egress: false
+
+  production:
+    needs: staging
+    if: vars.AWS_DEPLOY_ROLE_PRODUCTION != ''
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: production
+      image_tag: ${{ inputs.image_tag || github.sha }}
+      build: ${{ inputs.image_tag == '' }}
+      role: ${{ vars.AWS_DEPLOY_ROLE_PRODUCTION }}
+      clerk_publishable_key: ${{ vars.CLERK_PUBLISHABLE_KEY_PRODUCTION }}
+      check_egress: true

@@ -16,6 +16,8 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // web/Dockerfile sets this, so the deployed image is small. Local runs and tests use `next start`.
+  ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" as const } : {}),
   headers: async () => [{ source: "/:path*", headers: SECURITY_HEADERS }],
   // Server actions default to 1 MB. Documents can be 10 MB, and the API enforces that limit.
   experimental: { serverActions: { bodySizeLimit: "11mb" } },

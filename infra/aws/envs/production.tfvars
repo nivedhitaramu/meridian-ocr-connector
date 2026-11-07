@@ -1,0 +1,13 @@
+environment             = "production"
+domain_name             = "app.meridian.example.com" # replace
+hosted_zone_id          = "Z0000000000000000000"     # replace
+alert_email             = "alerts@example.com"       # replace
+clerk_issuer            = "https://clerk.example.com" # replace with the production Clerk instance
+vpc_cidr                = "10.41.0.0/16"
+enable_network_firewall = true
+db_instance_class       = "db.t4g.small"
+db_multi_az             = true
+redis_node_type         = "cache.t4g.small"
+api_count               = 2
+worker_count            = 2
+web_count               = 2
