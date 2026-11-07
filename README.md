@@ -91,6 +91,18 @@ streamlit run ui/streamlit_app.py
 
 The API docs are at `http://localhost:8000/docs` and the page is at `http://localhost:8501`.
 
+**The full website, with no Docker:** sign-in and the workspace need a database and background work. `scripts/run_local.py` provides both, using SQLite in `.local/` and threads in place of Redis and Celery. Put your Clerk settings in `.env` and `web/.env.local` (see `web/README.md`), then run:
+
+```bash
+python scripts/run_local.py
+```
+
+```bash
+cd web && npm install && npm run dev
+```
+
+Open `http://localhost:3000`. This is for development and demos only: SQLite has no row-level security, and work in progress is lost if the process stops.
+
 **With Docker instead:** set `POSTGRES_PASSWORD` in `.env`, then run the command below. It starts the API, a background worker, the page, PostgreSQL and Redis. Create the tables with `docker compose exec api alembic upgrade head`. `POST /v1/extract` needs neither PostgreSQL nor Redis.
 
 ```bash

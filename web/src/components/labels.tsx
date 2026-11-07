@@ -43,7 +43,8 @@ export function errorLabel(errorClass: string | null): string {
 }
 
 export function CheckBadge({ status }: { status: string }) {
-  const variant = status === "Mismatch" ? "destructive" : status === "Match" ? "default" : "secondary";
+  if (status === "Match") return <Badge className="bg-emerald-700 text-white">{status}</Badge>;
+  const variant = status === "Mismatch" ? "destructive" : "secondary";
   return <Badge variant={variant}>{status}</Badge>;
 }
 

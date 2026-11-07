@@ -1,6 +1,9 @@
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { ContainerArt } from "@/components/landing/art";
 import { EmptyState } from "@/components/states";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,9 +70,25 @@ export default async function WorkspacePage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-balance">{organization.name}</h1>
-        <p className="text-muted-foreground text-sm">Signed in as {me.email}</p>
+      <header className="relative overflow-hidden rounded-3xl bg-neutral-950 p-6 text-white md:p-8">
+        <ContainerArt className="pointer-events-none absolute -right-16 -bottom-24 hidden w-96 opacity-60 md:block" />
+        <div className="relative max-w-lg">
+          <p className="text-xs font-semibold tracking-widest text-orange-400 uppercase">Workspace</p>
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-balance md:text-4xl">{organization.name}</h1>
+          <p className="mt-1 text-sm text-neutral-300">Signed in as {me.email}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href={`/workspace/shipments?org=${organizationId}`} className={buttonVariants({ size: "lg" })}>
+              Start a check
+              <ArrowRight aria-hidden className="size-4" />
+            </Link>
+            <Link
+              href={`/workspace/intake?org=${organizationId}`}
+              className={`${buttonVariants({ size: "lg", variant: "outline" })} !border-neutral-500 !bg-transparent text-white hover:!bg-neutral-800 hover:text-white`}
+            >
+              Upload a batch
+            </Link>
+          </div>
+        </div>
       </header>
 
       <MyInvitations invitations={invitations} />

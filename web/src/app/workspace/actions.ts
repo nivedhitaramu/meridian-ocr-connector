@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { acceptInvitation, createOrganization, declineInvitation } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
@@ -15,8 +13,7 @@ export async function startOrganization(_: FormState, form: FormData): Promise<F
   } catch {
     return { error: "We couldn't create your organization. Try again." };
   }
-  revalidatePath("/workspace");
-  return { error: null };
+  return { error: null, reload: true }; // a full load, because updating in place could leave the page stuck
 }
 
 async function answer(form: FormData, call: typeof acceptInvitation | typeof declineInvitation): Promise<FormState> {
