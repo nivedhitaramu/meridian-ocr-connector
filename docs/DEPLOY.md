@@ -40,8 +40,7 @@ read -s -p "Gemini key: " KEY && printf %s "$KEY" | gcloud secrets create meridi
 ```
 
 ```bash
-openssl rand -hex 32 | tr -d '
-' | gcloud secrets create meridian-internal-token --data-file=-
+printf %s "$(openssl rand -hex 32)" | gcloud secrets create meridian-internal-token --data-file=-
 ```
 
 3. Let Cloud Run read them:
