@@ -47,6 +47,9 @@ export async function startJobAction(_: FormState, form: FormData): Promise<Form
   } catch (error) {
     const nextAttempt = crypto.randomUUID();
     if (error instanceof ApiError && error.status === 409) return { error: "Upload a document first.", nextAttempt };
+    if (error instanceof ApiError && error.status === 402) {
+      return { error: "Your plan's monthly document limit has been reached. Ask an admin about your plan.", nextAttempt };
+    }
     return { error: "We can't start this check right now. Try again soon.", nextAttempt };
   }
   return { error: null, reload: true };

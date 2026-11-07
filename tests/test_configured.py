@@ -16,7 +16,8 @@ from test_jobs import ALICE, api, fake_response, start_org  # noqa: F401
 from test_reviews import run_job
 
 CONFIG = Path("app/domains/meridian/config/meridian-1.json")
-RELEASED = {"meridian-1": "978cb07fa63e9b7c4bbea8def64592f7c4f9c2636a966d7a980b5d2fb23783b8"}
+RELEASED = {"meridian-1": "978cb07fa63e9b7c4bbea8def64592f7c4f9c2636a966d7a980b5d2fb23783b8",
+            "meridian-2": "eeb60e77a525e0f92953062c79efefe8a71e7fd222ebdb8edc1d7bd4998c8ef9"}
 
 ORDERS = {
     "version": "orders-1", "domain": "orders", "prompt_version": "orders-v1",
@@ -108,7 +109,7 @@ def test_released_versions_are_never_edited():
 def test_meridian_keeps_its_contract():
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     assert list(config["fields"]) == ["invoice_number", "shipper_name", "receiver_name", "shipment_date", "total_quantity", "total_weight_kg"]
-    assert DOMAIN.prompt_version == "meridian-v2" and DOMAIN.config_version == "meridian-1"
+    assert DOMAIN.prompt_version == "meridian-v3" and DOMAIN.config_version == "meridian-2"
 
 
 def test_a_saved_result_names_its_configuration(api, monkeypatch):  # noqa: F811

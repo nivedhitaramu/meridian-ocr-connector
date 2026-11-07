@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { AuditEvent, Invitation, Member, Organization, Role } from "@/lib/api";
+import type { AuditEvent, Invitation, Member, Organization, Role, Usage } from "@/lib/api";
 
 import { approvalStepsAction, cancelInvitationAction, changeRoleAction, inviteAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
 
@@ -268,16 +268,38 @@ function ReadOnlyMembers({ members }: { members: Member[] }) {
   );
 }
 
+function UsageCard({ usage }: { usage: Usage }) {
+  const used = usage.limit === null ? `${usage.documents} documents` : `${usage.documents} of ${usage.limit} documents`;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Usage this month</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        <p>
+          <span className="capitalize">{usage.plan}</span> plan: {used} since {usage.month} (UTC).
+        </p>
+        <p className="text-muted-foreground">
+          {usage.model_calls} model calls, {usage.input_tokens + usage.output_tokens} tokens. Checks stop when the limit is reached. Billing
+          isn&apos;t set up yet, so ask us to change your plan.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SettingsView({
   organization,
   members,
   invitations,
   events,
+  usage,
 }: {
   organization: Organization;
   members: Member[] | null;
   invitations: Invitation[] | null;
   events: AuditEvent[] | null;
+  usage: Usage | null;
 }) {
   const isAdmin = organization.role === "admin";
   return (
@@ -341,6 +363,8 @@ export function SettingsView({
           )}
         </CardContent>
       </Card>
+
+      {usage !== null ? <UsageCard usage={usage} /> : null}
 
       {events !== null ? (
         <Card>

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 
-from . import llm, ocr, pii, vision
+from . import guard, llm, ocr, pii, vision
 from ..core import config
 from ..domains import registry
 from ..domains.base import Domain, PIIInfo, PipelineInfo
@@ -28,6 +28,9 @@ def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: Reques
             delta = {k: v - before.get(k, 0) for k, v in vault.entity_counts.items() if v - before.get(k, 0)}
             attrs.update(entity_counts=delta, placeholder_count=vault.placeholder_count)
 
+        if guard.gives_orders(masked_text):  # checked for scans too, because the model would read the same words
+            raise PipelineError("manual_review_instructions")
+
         protected = False  # set only once this document's redaction or masking checks have passed
         with tr.stage("llm", slot=slot, prompt_version=domain.prompt_version) as attrs:
             if fallback:
@@ -46,7 +49,7 @@ def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: Reques
 
         parsed = domain.post_process(out.extraction)
         doc = domain.build_document(slot, parsed, result.page_count, fallback)
-        return doc, parsed, out.model, protected
+        return doc, parsed, out, protected
     finally:
         stored.delete()  # the upload never outlives the request
 
@@ -59,9 +62,11 @@ def run(files: list[bytes]):
     try:
         with tr.root():
             tr.emit(stage="request.start", file_count=len(files))
-            docs, parsed, models, protected = [], [], set(), []
+            docs, parsed, models, protected, outputs = [], [], set(), [], []
             for slot, data in enumerate(files, start=1):
-                d, p, m, safe = _process_one(slot, data, vault, tr, domain)
+                d, p, out, safe = _process_one(slot, data, vault, tr, domain)
+                m = out.model
+                outputs.append(out)
                 docs.append(d)
                 parsed.append(p)
                 models.add(m)
@@ -81,6 +86,9 @@ def run(files: list[bytes]):
                     model=", ".join(sorted(models)), prompt_version=domain.prompt_version,
                     config_version=domain.config_version,
                     timings_ms={k: tr.timings_ms.get(k, 0) for k in ("ocr", "pii", "llm", "rule")},
+                    model_calls=sum(o.model != "mock-regex" for o in outputs),
+                    prompt_tokens=sum(o.prompt_tokens for o in outputs),
+                    completion_tokens=sum(o.completion_tokens for o in outputs),
                 ),
             )
             _record(tr, "ok", response=response)

@@ -134,7 +134,7 @@ Example response shape:
     "ocr_engine": "tesseract",
     "used_vision_fallback": false,
     "model": "gemini-3.1-flash-lite",
-    "prompt_version": "meridian-v2",
+    "prompt_version": "meridian-v3",
     "timings_ms": {"ocr": 640, "pii": 38, "llm": 1102, "rule": 3}
   },
   "documents": []
@@ -181,6 +181,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `PATCH /v1/organization/retention` | Choose how long shipment records are kept; admin |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
+| `GET /v1/usage` | This month's documents, model calls and tokens, against the plan's limit; supervisor or admin |
 | `/v1/api-keys`, `/v1/webhooks` | Customer API keys and signed webhooks; admin. See [docs/API.md](docs/API.md) |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
@@ -259,7 +260,7 @@ The page shows the last request's four stages, durations, status and entity coun
 
 ## Evaluation
 
-Measured on 2026-11-04 with `gemini-3.1-flash-lite` on a paid plan, using prompt `meridian-v2`.
+Measured on 2026-11-04 with `gemini-3.1-flash-lite` on a paid plan, using prompt `meridian-v2`. On 2026-11-05 the security review added `meridian-v3`, which treats document text as data. The test sheet still scored 100% on fields, types and rules, but those documents helped tune the system, so that only shows the change didn't break them. See [the security review](docs/SECURITY_REVIEW.md).
 
 | Metric | Result with the real model |
 |---|---|
