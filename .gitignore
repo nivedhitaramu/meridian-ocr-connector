@@ -13,3 +13,6 @@ samples/_tmp_*
 web/node_modules/
 web/.next/
 web/.next-e2e/
+
+# scripts/run_local.py data
+.local/

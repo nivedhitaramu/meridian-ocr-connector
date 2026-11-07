@@ -128,4 +128,13 @@
   html {
     @apply font-sans;
   }
+  /* Headings use the display face everywhere, as on the home page. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+  }
+  main h1 {
+    @apply tracking-tight;
+  }
 }
