@@ -21,7 +21,10 @@ from app.worker import celery_app, queue
 from test_auth import client, clerk_settings, token  # noqa: F401  (shared fixtures)
 
 PERSON, PERSON_EMAIL, PERSON_PHONE = "Priya Venkataraman", "priya.v@example.com", "+91 98765 43210"
-OPEN_ROUTES = {("POST", "/v1/extract"), ("POST", "/v1/extract-eml"), ("GET", "/v1/trace/last"), ("GET", "/v1/metrics")}
+# Open on purpose: the assignment's routes, internal routes guarded by INTERNAL_API_TOKEN, and the email provider's
+# route, which is guarded by its signature instead of a sign-in (tests/test_mailbox.py checks that).
+OPEN_ROUTES = {("POST", "/v1/extract"), ("POST", "/v1/extract-eml"), ("GET", "/v1/trace/last"), ("GET", "/v1/metrics"),
+               ("POST", "/v1/inbound/email")}
 NO_ORGANIZATION_NEEDED = {("GET", "/v1/me"), ("POST", "/v1/organizations"), ("GET", "/v1/invitations")}
 
 
