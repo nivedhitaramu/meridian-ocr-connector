@@ -8,7 +8,6 @@ from pathlib import Path
 from ..core import config
 from .base import Domain
 
-_MODULES = {"meridian": "app.domains.meridian.domain"}
 _extra: dict[str, Domain] = {}
 
 
@@ -17,11 +16,12 @@ def register(domain: Domain) -> None:
 
 
 def get(name: str) -> Domain:
+    """A workflow is a package here with a domain.py, so adding one needs no change to this file."""
     if name in _extra:
         return _extra[name]
-    if name not in _MODULES:
+    if not name.isidentifier() or not (Path(__file__).parent / name / "domain.py").is_file():
         raise ValueError(f"Unknown domain: {name}")
-    return import_module(_MODULES[name]).DOMAIN
+    return import_module(f"{__package__}.{name}.domain").DOMAIN
 
 
 def configuration(version: str) -> dict | None:

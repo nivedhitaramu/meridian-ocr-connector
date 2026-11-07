@@ -22,20 +22,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SAMPLES = ROOT / "samples"
-FIELDS = ["invoice_number", "shipper_name", "receiver_name", "shipment_date", "total_quantity", "total_weight_kg"]
-
-
 def norm(field: str, v):
     if v in (None, "", "None"):
         return None
-    if field in ("total_quantity", "total_weight_kg"):
+    try:  # numbers compare as numbers, so 40 equals 40.0 and 1,200 equals 1200
         return float(str(v).replace(",", ""))
-    return " ".join(str(v).split()).casefold()
+    except ValueError:
+        return " ".join(str(v).split()).casefold()
 
 
 def same(field: str, got, want) -> bool:
     g, w = norm(field, got), norm(field, want)
-    if field == "total_weight_kg" and g is not None and w is not None:
+    if field.endswith("_kg") and isinstance(g, float) and isinstance(w, float):
         return abs(g - w) <= 0.5
     return g == w
 
@@ -78,7 +76,9 @@ def main() -> None:
     # ---- documents: type + fields
     rows, f_ok, f_total, t_ok, t_total = [], 0, 0, 0, 0
     with open(args.sheet) as fh:
-        for exp in csv.DictReader(fh):
+        reader = csv.DictReader(fh)
+        fields = [f for f in reader.fieldnames if f not in ("file", "expected_document_type")]  # from the sheet, for any workflow
+        for exp in reader:
             res = call([sheet_dir / exp["file"]])
             if "error" in res:
                 got_type, got = "error", {}
@@ -87,14 +87,14 @@ def main() -> None:
             t_total += 1
             t_ok += got_type == exp["expected_document_type"]
             row = {"file": exp["file"], "expected_type": exp["expected_document_type"], "got_type": got_type}
-            for f in FIELDS:
+            for f in fields:
                 ok = same(f, got.get(f), exp[f])
                 f_total += 1
                 f_ok += ok
                 row[f"{f}_expected"], row[f"{f}_got"], row[f"{f}_ok"] = exp[f], got.get(f), ok
             rows.append(row)
             print(f"{exp['file']:<24} type={'OK ' if got_type == exp['expected_document_type'] else 'BAD'} "
-                  f"fields={sum(row[f'{f}_ok'] for f in FIELDS)}/6")
+                  f"fields={sum(row[f'{f}_ok'] for f in fields)}/{len(fields)}")
     with open(SAMPLES / f"results_documents{suffix}.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
         w.writeheader()

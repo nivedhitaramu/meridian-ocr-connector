@@ -1,0 +1,10 @@
+file,expected_document_type,po_number,vendor_name,buyer_name,document_date,total_units
+R01_po.pdf,purchase_order,PO-40011,Coastal Agro Exports,Northline Warehouse Pvt Ltd,2026-03-03,240
+R01_grn.pdf,goods_receipt,PO-40011,Coastal Agro Exports,Northline Warehouse Pvt Ltd,2026-03-03,240
+R02_po.pdf,purchase_order,PO-40027,Deccan Packaging Industries,Northline Warehouse Pvt Ltd,2026-03-05,1200
+R02_grn.pdf,goods_receipt,PO-40027,Deccan Packaging Industries,Northline Warehouse Pvt Ltd,2026-03-05,1200
+R03_po.pdf,purchase_order,PO-40038,Sunrise Textiles Ltd,Northline Warehouse Pvt Ltd,2026-03-09,80
+R03_grn.pdf,goods_receipt,PO-40038,Sunrise Textiles Ltd,Northline Warehouse Pvt Ltd,2026-03-09,76
+R04_po.pdf,purchase_order,PO-40042,Malabar Spice Traders,Northline Warehouse Pvt Ltd,2026-03-11,150
+R04_grn.pdf,goods_receipt,PO-40042,Malabar Spice Traders,Northline Warehouse Pvt Ltd,2026-03-11,15
+R05_po.pdf,purchase_order,PO-40055,Konkan Hardware Enterprises,Northline Warehouse Pvt Ltd,2026-03-14,64
