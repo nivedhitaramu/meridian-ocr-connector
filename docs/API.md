@@ -27,6 +27,19 @@ curl -H "X-API-Key: mk_..." https://your-api/v1/shipments
 | 3. Start | `POST /v1/shipments/{id}/jobs`, with an `Idempotency-Key` header so a retry can't start a second job |
 | 4. Read | `GET /v1/jobs/{id}` for the status and saved results |
 
+## Plan limits
+
+Each organization's plan sets a monthly document limit. Starting a check that would pass it returns 402, and nothing is processed. Every finished job counts its documents, including failed and manual-review ones, because the documents were read. `GET /v1/usage` shows this month's totals to supervisors and admins.
+
+| Plan | Documents a month |
+|---|---|
+| trial | 100 |
+| team | 2,000 |
+| business | 20,000 |
+| enterprise | No limit |
+
+Billing isn't built yet, so staff change an organization's plan.
+
 ## Webhooks
 
 Add an endpoint with `POST /v1/webhooks` and `{"url": "https://..."}`. The signing secret is shown once. The address must be public HTTPS.

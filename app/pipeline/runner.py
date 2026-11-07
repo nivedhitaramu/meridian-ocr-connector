@@ -49,7 +49,7 @@ def _process_one(slot: int, data: bytes, vault: pii.PlaceholderVault, tr: Reques
 
         parsed = domain.post_process(out.extraction)
         doc = domain.build_document(slot, parsed, result.page_count, fallback)
-        return doc, parsed, out.model, protected
+        return doc, parsed, out, protected
     finally:
         stored.delete()  # the upload never outlives the request
 
@@ -62,9 +62,11 @@ def run(files: list[bytes]):
     try:
         with tr.root():
             tr.emit(stage="request.start", file_count=len(files))
-            docs, parsed, models, protected = [], [], set(), []
+            docs, parsed, models, protected, outputs = [], [], set(), [], []
             for slot, data in enumerate(files, start=1):
-                d, p, m, safe = _process_one(slot, data, vault, tr, domain)
+                d, p, out, safe = _process_one(slot, data, vault, tr, domain)
+                m = out.model
+                outputs.append(out)
                 docs.append(d)
                 parsed.append(p)
                 models.add(m)
@@ -84,6 +86,9 @@ def run(files: list[bytes]):
                     model=", ".join(sorted(models)), prompt_version=domain.prompt_version,
                     config_version=domain.config_version,
                     timings_ms={k: tr.timings_ms.get(k, 0) for k in ("ocr", "pii", "llm", "rule")},
+                    model_calls=sum(o.model != "mock-regex" for o in outputs),
+                    prompt_tokens=sum(o.prompt_tokens for o in outputs),
+                    completion_tokens=sum(o.completion_tokens for o in outputs),
                 ),
             )
             _record(tr, "ok", response=response)

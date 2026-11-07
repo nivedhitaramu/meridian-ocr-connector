@@ -230,6 +230,24 @@ class ApiKey(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class UsageRecord(Base):
+    """What one finished job used. Kept when retention deletes the job, so monthly counts stay right."""
+    __tablename__ = "usage_records"
+    __table_args__ = (
+        UniqueConstraint("job_id", name="uq_usage_records_job_id"),
+        Index("ix_usage_records_tenant_created", "organization_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("processing_jobs.id", ondelete="SET NULL"))
+    documents: Mapped[int] = mapped_column(Integer)
+    model_calls: Mapped[int] = mapped_column(Integer)
+    input_tokens: Mapped[int] = mapped_column(Integer)
+    output_tokens: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _created_at()
+
+
 class WebhookEndpoint(Base):
     __tablename__ = "webhook_endpoints"
 

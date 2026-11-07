@@ -22,6 +22,9 @@ class PipelineInfo(BaseModel):
     prompt_version: str | None = None
     config_version: str | None = None
     timings_ms: dict[str, int] = Field(default_factory=dict)
+    model_calls: int = 0  # for usage metering
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
 
 
 @dataclass(frozen=True)
