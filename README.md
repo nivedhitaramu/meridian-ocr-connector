@@ -296,15 +296,19 @@ python scripts/evaluate.py --sheet samples/holdout/holdout_sheet.csv --cases sam
 | Document-type accuracy | 14/14 = 100% |
 | Rule accuracy | 8/8 = 100% |
 
-**Final set (documents made after the prompt and filters were frozen):** `scripts/make_final_set.py` writes 16 documents and 10 rule cases to `samples/final/`, with new layouts, labels, companies and units, one scanned pair, a pair printing two totals, and a personal GSTIN. These were scored once, on 2026-11-05.
+**Final set (documents made after the prompt and filters were frozen):** `scripts/make_final_set.py` writes 16 documents and 10 rule cases to `samples/final/`, with new layouts, labels, companies and units, one scanned pair, a pair printing two totals, and a personal GSTIN. 
 
-| Metric | Final set with the real model, first and only run |
-|---|---|
-| Field match after normalization | 91/96 = 94.8% |
-| Document-type accuracy | 16/16 = 100% |
-| Rule accuracy | 10/10 = 100% |
+| Metric | First run, 2026-11-05 | Current code, 2026-11-07 |
+|---|---|---|
+| Field match after normalization | 91/96 = 94.8% | 94/96 = 97.9% |
+| Document-type accuracy | 16/16 = 100% | 16/16 = 100% |
+| Rule accuracy | 10/10 = 100% | 10/10 = 100% |
 
-All five misses were over-masking: four shipper names and one reference were replaced by a placeholder, which protects people at the cost of a field. No total was wrong, and no status changed. The same person wrote these documents and the code, so this isn't an independent test, and the documents are still synthetic.
+All misses in both runs were over-masking: a name was replaced by a placeholder, which protects people at the cost of a field. No total was wrong, and no status changed.
+
+- **First run:** four shipper names and one reference were masked.
+- **Second run:** the personal-ID masking had been narrowed and the prompt hardened against injection (`meridian-v3`). The two remaining misses are one company, "Zenith Forge", on both its documents, because a company name without a word like "Ltd" is masked.
+- **Caveats:** the first run was the only one made before any fix, so the second isn't an unseen score. The same person wrote these documents and the code, so neither run is an independent test, and the documents are synthetic.
 
 **Read the earlier numbers with care.** The first holdout run scored 94.0% on fields and 87.5% on rules. It found three bugs, which were fixed before this run, so these documents are no longer truly unseen. All documents are synthetic, so real scans may score lower.
 
