@@ -59,6 +59,15 @@ export type Usage = {
 
 export const getUsage = (context: ApiContext) => request<Usage>(context, "/v1/usage");
 
+export type MailboxSettings = { address: string | null; allowed_senders: string[]; receiving: boolean };
+
+export const getMailbox = (context: ApiContext) => request<MailboxSettings>(context, "/v1/mailbox");
+
+export const setMailbox = (context: ApiContext, allowedSenders: string[]) =>
+  request<MailboxSettings>(context, "/v1/mailbox", { method: "PUT", body: JSON.stringify({ allowed_senders: allowedSenders }) });
+
+export const rotateMailbox = (context: ApiContext) => request<MailboxSettings>(context, "/v1/mailbox/rotate", { method: "POST" });
+
 export const listMembers = (context: ApiContext) => request<Member[]>(context, "/v1/organization/members");
 
 export type AuditEvent = {

@@ -73,6 +73,7 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 | `web/` | Next.js product UI; see `web/README.md` |
 | `docs/ARCHITECTURE.md` | Six architecture diagrams, labelled Built or Target |
 | `docs/API.md` | Customer API and webhooks |
+| `docs/MAILBOX.md` | Mailbox intake and how to connect an email provider |
 | `docs/WORKFLOWS.md` | How to add a workflow, and the second workflow's results |
 | `app/domains/receiving/` | Second workflow: purchase order against goods received note (#43) |
 | `docs/SECURITY_REVIEW.md` | Findings and decisions from the pre-launch review (#36) |
@@ -110,6 +111,7 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - **2026-11-02: Tenant isolation.** The organization comes from memberships, never a request body. Other tenants' records return 404. Each signed-in request runs as the restricted `meridian_app` role, because superusers skip row-level security. New tenant tables must add a policy in their migration.
 - **2026-11-04: The user asked to build the product issues before submission.** This replaces the fellowship-first order for those issues. The assignment still decides what's graded.
 - **Hosted vision:** off unless `VISION_MODEL` is set; otherwise unreadable scans return manual review.
+- **2026-11-07: Mailbox intake (#37).** One signed route, `POST /v1/inbound/email`, accepts raw mail from any provider through a small adapter. Senders must be on the organization's list, and each accepted email becomes one `EMAIL-` shipment and job. No provider is connected, and From can be forged unless the adapter checks SPF, DKIM or DMARC (`docs/MAILBOX.md`).
 - **2026-11-07: Usage metering and plan limits (#44).** Each finished job writes a `usage_records` row (documents, model calls, tokens), kept when retention deletes the job. Plans and limits are in `app/core/plans.py` (trial 100, team 2,000, business 20,000, enterprise unlimited, as defaults to confirm). Starting a check over the limit returns 402. Billing through a payment provider isn't built, because it needs an account.
 - **2026-11-07: Second workflow is warehouse receiving** (purchase order against goods received note), chosen as a default the user can overrule. The registry now finds workflows by folder, and the website and evaluation script read fields from configuration, so later workflows need no platform code. Intake grouping is still Meridian-only.
 - **2026-11-05: Document text is untrusted.** A line in a document changed the real model's answer, so prompt `meridian-v3` treats text as data and `app/pipeline/guard.py` sends obvious orders to manual review. See `docs/SECURITY_REVIEW.md`.

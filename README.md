@@ -181,6 +181,8 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `PATCH /v1/organization/retention` | Choose how long shipment records are kept; admin |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
+| `GET /v1/mailbox`, `PUT /v1/mailbox`, `POST /v1/mailbox/rotate` | The organization's inbound address and allowed senders; admin |
+| `POST /v1/inbound/email` | For the email provider only, signed with `INBOUND_EMAIL_SECRET`; see [docs/MAILBOX.md](docs/MAILBOX.md) |
 | `GET /v1/usage` | This month's documents, model calls and tokens, against the plan's limit; supervisor or admin |
 | `/v1/api-keys`, `/v1/webhooks` | Customer API keys and signed webhooks; admin. See [docs/API.md](docs/API.md) |
 

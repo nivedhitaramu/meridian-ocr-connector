@@ -36,6 +36,8 @@ VISION_MODEL = os.getenv("VISION_MODEL", "")
 
 # --- OCR -------------------------------------------------------------------
 OCR_DPI = _int("OCR_DPI", 300)
+INBOUND_EMAIL_SECRET = os.getenv("INBOUND_EMAIL_SECRET", "")  # shared with the email provider; mailbox intake is off without it
+INBOUND_EMAIL_DOMAIN = os.getenv("INBOUND_EMAIL_DOMAIN", "")  # e.g. in.example.com, whose mail the provider receives
 MAX_PAGE_PIXELS = _int("MAX_PAGE_PIXELS", 25_000_000)  # A3 at 300 DPI is about 17 million
 OCR_TIMEOUT_S = _int("OCR_TIMEOUT_S", 60)              # per step, so a hostile file can't hold a worker
 OCR_MIN_ALNUM = _int("OCR_MIN_ALNUM", 40)      # fewer letters/digits -> fallback

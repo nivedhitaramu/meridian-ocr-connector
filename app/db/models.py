@@ -230,6 +230,22 @@ class ApiKey(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class Mailbox(Base):
+    """One inbound address per organization. The token is in the address, so it's stored as is."""
+    __tablename__ = "mailboxes"
+    __table_args__ = (
+        UniqueConstraint("organization_id", name="uq_mailboxes_organization_id"),
+        UniqueConstraint("token", name="uq_mailboxes_token"),
+    )
+
+    id: Mapped[uuid.UUID] = _id()
+    organization_id: Mapped[uuid.UUID] = _tenant()
+    token: Mapped[str] = mapped_column(String(24))
+    allowed_senders: Mapped[list | None] = mapped_column(JsonValue)
+    created_at: Mapped[datetime] = _created_at()
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class UsageRecord(Base):
     """What one finished job used. Kept when retention deletes the job, so monthly counts stay right."""
     __tablename__ = "usage_records"
