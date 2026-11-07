@@ -1,6 +1,7 @@
 """Step 2: local OCR with Tesseract. Keeps word boxes so the vision fallback can redact."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -49,17 +50,36 @@ class OCRResult:
         return False
 
 
+def _check_pixels(width: float, height: float) -> None:
+    if width * height > config.MAX_PAGE_PIXELS:
+        raise PipelineError("page_too_large")
+
+
+def _check_pdf_page_sizes(info: dict) -> None:
+    """A tiny PDF can declare an enormous page, so sizes are checked before anything is drawn."""
+    sizes = [re.match(r"([\d.]+) x ([\d.]+)", str(value)) for key, value in info.items()
+             if re.fullmatch(r"Page\s*(\d+\s+)?size", key)]
+    if not sizes or not all(sizes):
+        raise PipelineError("file_unreadable")
+    scale = config.OCR_DPI / 72  # sizes are in points
+    for size in sizes:
+        _check_pixels(float(size[1]) * scale, float(size[2]) * scale)
+
+
 def load_pages(path: Path, kind: str) -> list[Image.Image]:
     try:
         if kind == "pdf":
             from pdf2image import convert_from_path, pdfinfo_from_path  # needs poppler installed
 
             # Refuse long PDFs outright: a total on a page we skipped would give a wrong answer.
-            if pdfinfo_from_path(str(path))["Pages"] > config.MAX_PDF_PAGES:
+            info = pdfinfo_from_path(str(path), first_page=1, last_page=config.MAX_PDF_PAGES, timeout=config.OCR_TIMEOUT_S)
+            if info["Pages"] > config.MAX_PDF_PAGES:
                 raise PipelineError("too_many_pages")
-            pages = convert_from_path(str(path), dpi=config.OCR_DPI)
+            _check_pdf_page_sizes(info)
+            pages = convert_from_path(str(path), dpi=config.OCR_DPI, timeout=config.OCR_TIMEOUT_S)
         else:
             img = Image.open(path)
+            _check_pixels(*img.size)  # opening only reads the header, so nothing large is in memory yet
             img = ImageOps.exif_transpose(img)
             pages = [img.convert("RGB")]
     except PipelineError:
@@ -81,10 +101,13 @@ def run_ocr(images: list[Image.Image]) -> OCRResult:
     for page_no, img in enumerate(images):
         try:
             data = pytesseract.image_to_data(
-                img, lang=config.OCR_LANG, config=f"--psm {config.OCR_PSM}", output_type=pytesseract.Output.DICT
+                img, lang=config.OCR_LANG, config=f"--psm {config.OCR_PSM}", output_type=pytesseract.Output.DICT,
+                timeout=config.OCR_TIMEOUT_S,
             )
         except pytesseract.TesseractNotFoundError as exc:
             raise PipelineError("ocr_engine_missing") from exc
+        except RuntimeError as exc:  # pytesseract's timeout
+            raise PipelineError("ocr_timeout") from exc
 
         last_line = None
         for i, raw in enumerate(data["text"]):

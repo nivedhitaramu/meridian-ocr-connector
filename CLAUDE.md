@@ -73,6 +73,7 @@ Scoring: working demo 30%, extraction accuracy 25%, masking 15%, code and README
 | `web/` | Next.js product UI; see `web/README.md` |
 | `docs/ARCHITECTURE.md` | Six architecture diagrams, labelled Built or Target |
 | `docs/API.md` | Customer API and webhooks |
+| `docs/SECURITY_REVIEW.md` | Findings and decisions from the pre-launch review (#36) |
 | `scripts/` | Sample generation, `.eml` packets, evaluation |
 | `samples/` | 40 synthetic documents, test sheets, `.eml` packets |
 | `tests/` | Automated tests for every layer |
@@ -107,6 +108,8 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - **2026-11-02: Tenant isolation.** The organization comes from memberships, never a request body. Other tenants' records return 404. Each signed-in request runs as the restricted `meridian_app` role, because superusers skip row-level security. New tenant tables must add a policy in their migration.
 - **2026-11-04: The user asked to build the product issues before submission.** This replaces the fellowship-first order for those issues. The assignment still decides what's graded.
 - **Hosted vision:** off unless `VISION_MODEL` is set; otherwise unreadable scans return manual review.
+- **2026-11-05: Document text is untrusted.** A line in a document changed the real model's answer, so prompt `meridian-v3` treats text as data and `app/pipeline/guard.py` sends obvious orders to manual review. See `docs/SECURITY_REVIEW.md`.
+- **2026-11-05: Security review decisions.** The user accepted the proposals in `docs/SECURITY_REVIEW.md`. Still to do before launch: Clerk's verified-email setting, `MAX_EML_ATTACHMENTS=4` and a budget alert at deployment, and a Content-Security-Policy and webhook fixes under #33.
 - **2026-11-05: Joining an organization needs an invitation and acceptance.** Invitations match the signed-in email, so Clerk must require a verified email address. There's no email sender yet, so people see invitations when they sign in. Expired ones are deleted nightly.
 
 ## Current status

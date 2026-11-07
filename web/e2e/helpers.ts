@@ -38,5 +38,5 @@ export async function checkShipment(page: Page, reference: string, files: string
     await expect(page.getByText(uploaded === 1 ? "1 document is ready to check." : `${uploaded} documents are ready to check.`)).toBeVisible();
   }
   await page.getByRole("button", { name: "Check quantities" }).click();
-  await expect(page.getByText("Rules version: meridian-1.")).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText(/Rules version: meridian-\d+\./)).toBeVisible({ timeout: 120_000 });
 }

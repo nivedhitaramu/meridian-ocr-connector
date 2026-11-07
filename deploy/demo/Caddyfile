@@ -1,6 +1,12 @@
 # One public port. The host provides HTTPS in front of this.
 :{$PORT}
 
+header {
+	X-Frame-Options SAMEORIGIN
+	X-Content-Type-Options nosniff
+	Referrer-Policy strict-origin-when-cross-origin
+}
+
 @api path /v1/* /docs /openapi.json /healthz
 reverse_proxy @api 127.0.0.1:8000
 reverse_proxy 127.0.0.1:8501

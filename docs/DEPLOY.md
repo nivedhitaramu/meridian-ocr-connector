@@ -11,6 +11,7 @@ Set these as secrets on your host, never in the repo.
 | `LLM_API_KEY` | A key on a plan that doesn't train on prompts |
 | `LLM_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` for Gemini |
 | `LLM_MODEL` | `gemini-3.1-flash-lite`, the model the accuracy results used |
+| `MAX_EML_ATTACHMENTS` | `4`, because one `.eml` counts as one request against the daily limit but makes one model call per document |
 | `INTERNAL_API_TOKEN` | A long random value. The image refuses to start without it |
 | `DAILY_EXTRACT_LIMIT` | The most extract requests per day. Defaults to 200 |
 

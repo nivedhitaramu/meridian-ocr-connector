@@ -12,6 +12,10 @@ COPY ui ./ui
 COPY migrations ./migrations
 COPY alembic.ini .
 
+RUN useradd -u 1000 -m meridian && mkdir -p /data/uploads /app/.uploads /app/.job-uploads /app/logs \
+    && chown -R meridian /data /app
+USER meridian
+
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 # The API key comes from the environment at run time: docker run --env-file .env ...
