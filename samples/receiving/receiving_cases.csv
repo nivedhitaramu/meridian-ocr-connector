@@ -1,0 +1,6 @@
+case,file,file2,expected_status
+R01-pair,R01_po.pdf,R01_grn.pdf,Match
+R02-pair,R02_po.pdf,R02_grn.pdf,Match
+R03-pair,R03_po.pdf,R03_grn.pdf,Mismatch
+R04-pair,R04_po.pdf,R04_grn.pdf,Mismatch
+R05-pair,R05_po.pdf,,Incomplete
