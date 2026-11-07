@@ -124,7 +124,7 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 ## Current status
 
-**Last updated:** 2026-11-05.
+**Last updated:** 2026-11-07.
 
 **On `main`:** the full pipeline, `.eml` route, Streamlit page, Clerk sign-in, tenant isolation, audit events, shipments, Celery jobs, human review, approvals, customer API and webhooks, versioned configuration, personal GSTIN masking, retention, trends, document grouping and all Next.js screens (PRs through #74). 27 issues are still open, because their evidence or decisions are outstanding.
 
@@ -133,11 +133,12 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 - **Website (2026-11-04):** one real Clerk account signed in, created an organization and a shipment, uploaded documents and got one Incomplete result. This used SQLite and a local thread in place of Redis and Celery, kept outside the repo.
 - **Customer API (2026-11-05):** `scripts/customer_example.py` submitted S01 and received a signed webhook over real HTTP, using the mock model, a throwaway database and threads instead of Celery.
 - **Grouping (2026-11-05):** `scripts/evaluate_grouping.py`: 34 of 34 clean documents grouped and 0 wrong; 0 of 34 damaged documents grouped. The patterns were written after seeing these samples, so this isn't an unseen score.
-- **New documents (2026-11-05):** 16 new synthetic documents, one run with the real model: fields 91/96 (94.8%), type 16/16, rules 10/10. All five misses were over-masking. Masking changed afterwards (#73) and the real model hasn't been re-run. The same author wrote these documents and the code.
+- **New documents (2026-11-05, re-run 2026-11-07):** 16 synthetic documents made after the prompt was frozen. First run: fields 91/96 (94.8%), type 16/16, rules 10/10. Current code (`meridian-v3`): fields 94/96 (97.9%), 16/16, 10/10; both misses are one company masked as a person. The re-run isn't unseen, and the same author wrote documents and code.
 - **Real stack (#74, in CI):** Celery, Redis and PostgreSQL ran a full check, recovered from a killed worker with one result, delivered a signed webhook, ran intake and ran retention under row-level security.
 - **Provider terms:** Gemini's paid tier doesn't use prompts to improve products, and logs them for a limited time.
-- **Browser tests (2026-11-05):** `web/e2e`, 14 tests, passed three runs in a row on this machine. They use the real API and the mock model, SQLite, threads in place of Celery, and a stand-in for Clerk, so they don't prove real sign-in or row-level security.
-- **CI on every PR:** tests with PostgreSQL, including row-level security; the Docker stack; the demo image; the web app; the browser tests. CI uses `LLM_PROVIDER=mock`.
+- **Browser tests:** `web/e2e`, 15 tests, pass in CI on every PR. They use the real API and the mock model, SQLite, threads in place of Celery, and a stand-in for Clerk, so they don't prove real sign-in.
+- **Second workflow (2026-11-07):** receiving scored 45/45 fields, 9/9 types and 5/5 rules with the real model, on 9 clean synthetic documents the same author made.
+- **CI on every PR:** tests with PostgreSQL, including row-level security; the Docker stack; the demo image; the web app; the browser tests; and, from #82, Terraform validation and a secret scan. CI uses `LLM_PROVIDER=mock`.
 
 **Not verified**
 - The website with a real Clerk account beyond the one Incomplete check
@@ -156,12 +157,14 @@ Put the key in `LLM_API_KEY` in `.env`. Without a key, use `LLM_PROVIDER=mock` f
 
 **Git safety:** stage files by name.
 
+**Open PRs (all passing CI on 2026-11-07):** #80 mailbox intake (its base still names a merged branch; change it to `main`), #81 warehouse connector, #82 AWS infrastructure code (not applied), #83 submission docs. #82 contains #80 and #81.
+
 **Issues by what they need**
-- **Real sign-in test:** #15, #24.
-- **Browser evidence, ready to review:** #23, #25-#31, #39, #40.
-- **Deployment on Google Cloud Run (recommended, user's account):** #6, then #11 and #12.
-- **Decisions:** #32-#37, #41, #43, #44, and single sign-on in #45. #42 is merged. #38 is built for uploads, and the mailbox is #37.
+- **Evidence complete, waiting to be closed by the user:** #15, #23, #25-#30, #38, #40, #42.
+- **A person:** #24 (phone sign-in), #31 (screen reader), #12 (rehearsal).
+- **Accounts or money:** #6 deploy (the user chose not to deploy for now), #32-#35 applying AWS, #37 an email provider, #44 billing, #45 single sign-on, #39 an email sender for notifications.
+- **Built, closes when its PR merges:** #36 (decisions recorded), #37, #41, #43 (merged), #44 (metering merged).
 
-**Next step:** deploy the live demo (#6), correct `docs/DEPLOY.md` once that works, then test real sign-in.
+**Next step:** merge #83, then #82 (which brings #80 and #81). The live demo link (#6, #11) is the only graded item missing.
 
-**Open questions for the team:** submission deadline, and when the AWS and decision issues should start.
+**Open questions for the team:** submission deadline.
