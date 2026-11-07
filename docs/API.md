@@ -68,3 +68,27 @@ Every request has `X-Meridian-Signature: t=<unix time>,v1=<hex>`. `v1` is an HMA
 ### Retries
 
 Any 2xx response counts as delivered. Anything else is retried up to 5 attempts in total, waiting 30 seconds and then doubling. Redirects aren't followed. A retry keeps the same `X-Meridian-Delivery` ID, so ignore an ID you've already handled. Recent attempts are at `GET /v1/webhooks/deliveries`.
+
+## Connectors: verified receipts for a warehouse system
+
+An endpoint added with `"format": "wms_receipt"` receives a goods receipt instead of the plain event, and only once the result is verified:
+
+- **By the rules:** the check found a Match.
+- **By a person:** someone resolved the exception, with any corrected quantity included.
+
+A failed or manual-review job sends nothing until a person resolves it, and a follow-up note doesn't count. Each job is sent once per endpoint. Signing, retries and the address checks are the same as for events.
+
+```json
+{
+  "event": "goods_receipt.verified",
+  "reference": "MF-1001",
+  "verification": {"status": "Match", "reason": "...", "decided_by": "rules", "config_version": "meridian-2", "corrected_quantity": null},
+  "documents": [{"document_type": "commercial_invoice", "fields": {"invoice_number": "MF-1001", "shipper_name": "Kestrel Exports", "total_quantity": 120}, "quantity_unit": "carton"}]
+}
+```
+
+The receipt includes the extracted fields, the same ones the website shows. Names the masking replaced stay as placeholders, and documents are never sent.
+
+**Trying it:** `scripts/sandbox_wms.py` is a stand-in warehouse system that checks signatures and prints each receipt. Run the API with `WEBHOOK_ALLOW_PRIVATE=1` so it may deliver to localhost.
+
+**Adding a target** for another ERP, WMS or TMS: add a format in `app/connectors/formats.py`, with a function that shapes the payload and a flag for whether it needs a verified result.

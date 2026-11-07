@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { ApiError, getMe, getOrganization, getUsage, listAuditEvents, listInvitations, listMembers } from "@/lib/api";
+import { ApiError, getMailbox, getMe, getOrganization, getUsage, listAuditEvents, listInvitations, listMembers } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
 import { SettingsView } from "./settings-view";
@@ -25,12 +25,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
   const organizationId = (chosen ?? me.memberships[0]).organization_id;
   const context = await apiContext(organizationId);
-  const [organization, members, invitations, events, usage] = await Promise.all([
+  const [organization, members, invitations, events, usage, mailbox] = await Promise.all([
     getOrganization(context),
     ifAllowed(() => listMembers(context)),
     ifAllowed(() => listInvitations(context)),
     ifAllowed(() => listAuditEvents(context)),
     ifAllowed(() => getUsage(context)),
+    ifAllowed(() => getMailbox(context)),
   ]);
-  return <SettingsView organization={organization} members={members} invitations={invitations} events={events} usage={usage} />;
+  return <SettingsView organization={organization} members={members} invitations={invitations} events={events} usage={usage} mailbox={mailbox} />;
 }

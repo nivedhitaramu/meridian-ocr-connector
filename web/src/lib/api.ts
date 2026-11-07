@@ -59,6 +59,15 @@ export type Usage = {
 
 export const getUsage = (context: ApiContext) => request<Usage>(context, "/v1/usage");
 
+export type MailboxSettings = { address: string | null; allowed_senders: string[]; receiving: boolean };
+
+export const getMailbox = (context: ApiContext) => request<MailboxSettings>(context, "/v1/mailbox");
+
+export const setMailbox = (context: ApiContext, allowedSenders: string[]) =>
+  request<MailboxSettings>(context, "/v1/mailbox", { method: "PUT", body: JSON.stringify({ allowed_senders: allowedSenders }) });
+
+export const rotateMailbox = (context: ApiContext) => request<MailboxSettings>(context, "/v1/mailbox/rotate", { method: "POST" });
+
 export const listMembers = (context: ApiContext) => request<Member[]>(context, "/v1/organization/members");
 
 export type AuditEvent = {
@@ -237,7 +246,7 @@ export const setApprovalSteps = (context: ApiContext, steps: Role[]) =>
   request<{ approval_steps: Role[] }>(context, "/v1/organization/approval-steps", { method: "PATCH", body: JSON.stringify({ steps }) });
 
 export type ApiKey = { id: string; name: string; prefix: string; created_at: string | null; last_used_at: string | null; revoked_at: string | null };
-export type Webhook = { id: string; url: string; created_at: string | null };
+export type Webhook = { id: string; url: string; format: "event" | "wms_receipt"; created_at: string | null };
 export type Delivery = { id: string; endpoint_id: string; job_id: string; status: string; attempts: number; response_code: number | null; created_at: string | null };
 
 export const listApiKeys = (context: ApiContext) => request<ApiKey[]>(context, "/v1/api-keys");
@@ -253,8 +262,8 @@ export const revokeApiKey = (context: ApiContext, id: string) =>
 
 export const listWebhooks = (context: ApiContext) => request<Webhook[]>(context, "/v1/webhooks");
 
-export const addWebhook = (context: ApiContext, url: string) =>
-  request<Webhook & { secret: string }>(context, "/v1/webhooks", { method: "POST", body: JSON.stringify({ url }) });
+export const addWebhook = (context: ApiContext, url: string, format: Webhook["format"] = "event") =>
+  request<Webhook & { secret: string }>(context, "/v1/webhooks", { method: "POST", body: JSON.stringify({ url, format }) });
 
 export const removeWebhook = (context: ApiContext, id: string) =>
   request<void>(context, `/v1/webhooks/${encodeURIComponent(id)}`, { method: "DELETE" });

@@ -1,4 +1,4 @@
-"""Tell a customer's endpoint that a job finished. Only IDs, statuses and code-written reasons are sent."""
+"""Deliver results to customers' endpoints. Each endpoint's format, in app/connectors, decides what is sent and when."""
 from __future__ import annotations
 
 import hashlib
@@ -13,8 +13,9 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..connectors import formats
 from ..core import config, webhook_url
-from ..db.models import ProcessingJob, Shipment, VerificationResult, WebhookDelivery, WebhookEndpoint
+from ..db.models import ProcessingJob, WebhookDelivery, WebhookEndpoint
 from ..db.session import new_session
 from ..db.tenancy import set_scope
 
@@ -32,25 +33,32 @@ def sign(secret: str, timestamp: int, body: bytes) -> str:
 
 
 def create_deliveries(session: Session, job: ProcessingJob) -> list[uuid.UUID]:
-    """Add one row per active endpoint, in the job's own transaction, unless a redelivery already did."""
+    """Add one row per active endpoint that wants this job now, in the caller's transaction, unless one exists.
+
+    Called when a job finishes and again when a person resolves it, so a verified-only format is sent once,
+    at whichever point the result became verified.
+    """
     endpoints = session.scalars(select(WebhookEndpoint).where(
         WebhookEndpoint.organization_id == job.organization_id, WebhookEndpoint.disabled_at.is_(None)))
     seen = set(session.scalars(select(WebhookDelivery.endpoint_id).where(WebhookDelivery.job_id == job.id)))
-    rows = [WebhookDelivery(id=uuid.uuid4(), organization_id=job.organization_id, endpoint_id=endpoint.id, job_id=job.id,
-                            status="pending", attempts=0) for endpoint in endpoints if endpoint.id not in seen]
+    verified = None
+    rows = []
+    for endpoint in endpoints:
+        if endpoint.id in seen:
+            continue
+        if formats.FORMATS.get(endpoint.format, formats.FORMATS["event"]).verified_only:
+            verified = formats.is_verified(session, job) if verified is None else verified
+            if not verified:
+                continue
+        rows.append(WebhookDelivery(id=uuid.uuid4(), organization_id=job.organization_id, endpoint_id=endpoint.id,
+                                    job_id=job.id, status="pending", attempts=0))
     session.add_all(rows)
     return [row.id for row in rows]
 
 
-def payload(session: Session, delivery: WebhookDelivery) -> bytes:
-    job = session.get(ProcessingJob, delivery.job_id)
-    shipment = session.get(Shipment, job.shipment_id)
-    check = session.scalar(select(VerificationResult).where(VerificationResult.job_id == job.id))
-    return json.dumps({
-        "event": "job.finished", "delivery_id": str(delivery.id), "job_id": str(job.id), "shipment_id": str(shipment.id),
-        "reference": shipment.reference, "job_status": job.job_status, "check_status": check.status if check else None,
-        "reason": check.reason if check else None,
-    }, sort_keys=True, separators=(",", ":")).encode()
+def payload(session: Session, delivery: WebhookDelivery, format_name: str = "event") -> bytes:
+    body = formats.build(session, delivery.id, delivery.job_id, format_name)
+    return json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
 
 
 def _settle(delivery: WebhookDelivery, status: str) -> None:
@@ -73,7 +81,7 @@ def deliver(organization_id: str, delivery_id: str) -> None:
         delivery.attempts += 1
         accepted, code = False, None
         if webhook_url.acceptable(endpoint.url):
-            body = payload(session, delivery)
+            body = payload(session, delivery, endpoint.format)
             headers = {"Content-Type": "application/json", "X-Meridian-Delivery": str(delivery.id),
                        "X-Meridian-Signature": sign(endpoint.secret, int(time.time()), body)}
             try:

@@ -28,7 +28,7 @@ services:
 
   worker:
     build: .
-    command: ["celery", "-A", "app.worker.celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=1", "--schedule=/tmp/celerybeat-schedule"]
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "-Q", "celery,deliveries", "--beat", "--loglevel=info", "--concurrency=1", "--schedule=/tmp/celerybeat-schedule"]
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://meridian:${POSTGRES_PASSWORD}@postgres:5432/meridian

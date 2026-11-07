@@ -47,7 +47,8 @@ export async function revokeKeyAction(_: AccessState, form: FormData): Promise<A
 
 export async function addWebhookAction(_: AccessState, form: FormData): Promise<AccessState> {
   try {
-    return done((await addWebhook(await context(form), text(form, "url"))).secret);
+    const format = text(form, "format") === "wms_receipt" ? "wms_receipt" : "event";
+    return done((await addWebhook(await context(form), text(form, "url"), format)).secret);
   } catch (error) {
     if (error instanceof ApiError && error.status === 422) return failed("Use a public HTTPS address.");
     return failed("We couldn't add this webhook. Try again.");

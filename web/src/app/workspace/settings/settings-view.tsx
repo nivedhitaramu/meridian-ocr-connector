@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { AuditEvent, Invitation, Member, Organization, Role, Usage } from "@/lib/api";
+import type { AuditEvent, Invitation, MailboxSettings, Member, Organization, Role, Usage } from "@/lib/api";
 
-import { approvalStepsAction, cancelInvitationAction, changeRoleAction, inviteAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
+import { approvalStepsAction, cancelInvitationAction, mailboxAction, rotateMailboxAction, changeRoleAction, inviteAction, removeMemberAction, renameAction, retentionAction, type SettingsFormState } from "./actions";
 
 const INITIAL: SettingsFormState = { error: null, saved: false };
 const ROLES: Role[] = ["clerk", "supervisor", "admin"];
@@ -25,6 +25,8 @@ const ACTION_LABELS: Record<string, string> = {
   "member.invited": "Member invited",
   "invitation.cancelled": "Invitation cancelled",
   "invitation.declined": "Invitation declined",
+  "mailbox.changed": "Mailbox changed",
+  "mailbox.received": "Email received",
   "session.started": "Signed in",
   "document.uploaded": "Document uploaded",
   "review.recorded": "Review recorded",
@@ -268,6 +270,60 @@ function ReadOnlyMembers({ members }: { members: Member[] }) {
   );
 }
 
+function MailboxCard({ mailbox, organizationId }: { mailbox: MailboxSettings; organizationId: string }) {
+  const [saved, save, saving] = useActionState(mailboxAction, INITIAL);
+  const [rotated, rotate, rotating] = useActionState(rotateMailboxAction, INITIAL);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Mailbox</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        {mailbox.address ? (
+          <p>
+            Documents emailed to <span className="font-mono break-all">{mailbox.address}</span> from the senders below are checked automatically.
+          </p>
+        ) : (
+          <p className="text-muted-foreground">Add who may send documents, and you&apos;ll get an address to forward them to.</p>
+        )}
+        {!mailbox.receiving && mailbox.address ? (
+          <p className="text-muted-foreground">Mail isn&apos;t being received yet, because the email provider isn&apos;t connected.</p>
+        ) : null}
+        <form action={save} className="max-w-md space-y-2">
+          <input type="hidden" name="organization" value={organizationId} />
+          <label htmlFor="mailbox-senders" className="text-sm font-medium">
+            Allowed senders
+          </label>
+          <textarea
+            id="mailbox-senders"
+            name="senders"
+            rows={3}
+            defaultValue={mailbox.allowed_senders.join("\n")}
+            aria-describedby="mailbox-senders-help"
+            className="border-input bg-background focus-visible:ring-ring/50 w-full rounded-md border px-2 py-1 text-sm outline-none focus-visible:ring-3"
+          />
+          <p id="mailbox-senders-help" className="text-muted-foreground text-xs">
+            One email address or domain per line. Mail from anyone else is ignored.
+          </p>
+          <FormMessage state={saved} success="Saved." />
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : "Save senders"}
+          </Button>
+        </form>
+        {mailbox.address ? (
+          <form action={rotate} className="space-y-2">
+            <input type="hidden" name="organization" value={organizationId} />
+            <FormMessage state={rotated} success="New address ready. The old one no longer works." />
+            <Button type="submit" variant="outline" disabled={rotating}>
+              {rotating ? "Replacing..." : "Replace address"}
+            </Button>
+          </form>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function UsageCard({ usage }: { usage: Usage }) {
   const used = usage.limit === null ? `${usage.documents} documents` : `${usage.documents} of ${usage.limit} documents`;
   return (
@@ -294,12 +350,14 @@ export function SettingsView({
   invitations,
   events,
   usage,
+  mailbox,
 }: {
   organization: Organization;
   members: Member[] | null;
   invitations: Invitation[] | null;
   events: AuditEvent[] | null;
   usage: Usage | null;
+  mailbox: MailboxSettings | null;
 }) {
   const isAdmin = organization.role === "admin";
   return (
@@ -365,6 +423,8 @@ export function SettingsView({
       </Card>
 
       {usage !== null ? <UsageCard usage={usage} /> : null}
+
+      {mailbox !== null ? <MailboxCard mailbox={mailbox} organizationId={organization.id} /> : null}
 
       {events !== null ? (
         <Card>

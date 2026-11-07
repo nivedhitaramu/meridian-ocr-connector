@@ -20,6 +20,7 @@ from ..domains import registry
 from ..pipeline.pii import PLACEHOLDER_RE
 from .deps import Forbidden, Member, NotFound, ROLE_RANKS, current_member, request_id_for, require_role
 from .shipments import contains
+from ..worker import queue, webhooks
 
 router = APIRouter(prefix="/v1")
 
@@ -301,7 +302,13 @@ def add_review(request: Request, job_id: uuid.UUID, body: NewReview, member: Mem
     session.flush()
     audit.record(session, member.organization_id, member.user_id, audit.REVIEW_RECORDED, f"review:{review.id}",
                  request_id_for(request))
+    deliveries = webhooks.create_deliveries(session, job) if action == "resolve" else []  # now verified by a person
     session.commit()
+    for delivery_id in deliveries:
+        try:
+            queue.enqueue_webhook(member.organization_id, delivery_id)
+        except Exception:  # the review is saved; a broker outage must not undo it
+            pass
     return _review_json(review)
 
 

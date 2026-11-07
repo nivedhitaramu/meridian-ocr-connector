@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { ApiError, cancelInvitation, changeRole, inviteMember, removeMember, renameOrganization, type Role, setApprovalSteps, setRetention } from "@/lib/api";
+import { ApiError, cancelInvitation, rotateMailbox, setMailbox, changeRole, inviteMember, removeMember, renameOrganization, type Role, setApprovalSteps, setRetention } from "@/lib/api";
 import { apiContext } from "@/lib/server-api";
 
 export type SettingsFormState = { error: string | null; saved: boolean };
@@ -22,7 +22,7 @@ function role(form: FormData): Role | null {
 function message(error: unknown, conflict: string): string {
   if (error instanceof ApiError) {
     if (error.status === 403) return "Only admins can do this.";
-    if (error.status === 409) return conflict;
+    if (error.status === 409 || error.status === 422) return conflict;
   }
   return "That didn't work. Try again.";
 }
@@ -91,4 +91,14 @@ export async function removeMemberAction(_: SettingsFormState, form: FormData): 
     async (id) => removeMember(await apiContext(id), text(form, "user")),
     "This person can't be removed: they may be the last admin, or have recorded reviews.",
   );
+}
+
+export async function mailboxAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
+  const senders = text(form, "senders").split(/[\s,]+/).filter(Boolean);
+  if (senders.length === 0) return { error: "Add at least one sender address or domain.", saved: false };
+  return run(form, async (id) => setMailbox(await apiContext(id), senders), "That list can't be used.");
+}
+
+export async function rotateMailboxAction(_: SettingsFormState, form: FormData): Promise<SettingsFormState> {
+  return run(form, async (id) => rotateMailbox(await apiContext(id)), "There's no address to replace yet.");
 }

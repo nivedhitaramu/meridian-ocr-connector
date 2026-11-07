@@ -163,3 +163,33 @@ jobs:
             web/playwright-report
             web/test-results
           retention-days: 7
+
+  infra:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/aws
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - name: Check the AWS Terraform is valid (it isn't applied here)
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan this change for secrets
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          range="HEAD~1..HEAD"
+          if [ -n "$base" ] && [ "$base" != "0000000000000000000000000000000000000000" ]; then range="$base..HEAD"; fi
+          docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.21.2 git --log-opts="$range" --config .gitleaks.toml --redact --exit-code 1 .

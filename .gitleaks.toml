@@ -1,0 +1,15 @@
+# Secret scanning for every PR (#34). Uses gitleaks' default rules, minus values that are fake on purpose.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder values in tests and CI that can't sign anyone in"
+regexes = [
+  '''pk_test_ZmljdGlvbmFsLmNsZXJrLmFjY291bnRzLmRldiQ=''',
+  '''sk_test_placeholder''',
+  '''ci-only-value''',
+  '''test-inbound-secret''',
+]
+paths = [
+  '''^samples/''',
+]

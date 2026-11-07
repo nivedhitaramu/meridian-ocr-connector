@@ -77,6 +77,7 @@ export default async function ApiAccessPage({ searchParams }: { searchParams: Pr
           {webhooks.map((webhook) => (
             <div key={webhook.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
               <code className="break-all">{webhook.url}</code>
+              <span className="text-muted-foreground text-xs">{webhook.format === "wms_receipt" ? "Verified receipts" : "Every finished check"}</span>
               <RemoveWebhookForm organizationId={organizationId} id={webhook.id} url={webhook.url} />
             </div>
           ))}

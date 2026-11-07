@@ -1,0 +1,105 @@
+# One environment's deploy: build images, run migrations, roll out, then check worker egress.
+name: Deploy environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        required: true
+      build:
+        type: boolean
+        required: true
+      role:
+        type: string
+        required: true
+      clerk_publishable_key:
+        type: string
+        required: true
+      check_egress:
+        type: boolean
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: infra/aws
+    env:
+      TF_IN_AUTOMATION: "1"
+      TF_VAR_image_tag: ${{ inputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.role }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Initialise Terraform
+        run: terraform init -backend-config=envs/${{ inputs.environment }}.backend.hcl
+
+      - name: Build and push images
+        if: inputs.build
+        working-directory: .
+        run: |
+          registry=$(terraform -chdir=infra/aws output -json ecr_repositories)
+          api=$(echo "$registry" | jq -r .api)
+          web=$(echo "$registry" | jq -r .web)
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${api%%/*}"
+          docker build -t "$api:${{ inputs.image_tag }}" .
+          docker build -t "$web:${{ inputs.image_tag }}" --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ inputs.clerk_publishable_key }} web
+          docker push "$api:${{ inputs.image_tag }}"
+          docker push "$web:${{ inputs.image_tag }}"
+
+      - name: Run migrations before the new code
+        run: |
+          terraform apply -auto-approve -var-file=envs/${{ inputs.environment }}.tfvars -target=aws_ecs_task_definition.migrate
+          cluster=$(terraform output -raw cluster)
+          subnets=$(terraform output -json app_subnets | jq -r 'join(",")')
+          group=$(terraform output -raw app_security_group)
+          task=$(aws ecs run-task --cluster "$cluster" --launch-type FARGATE --task-definition "$(terraform output -raw migrate_task_definition)" \
+            --network-configuration "awsvpcConfiguration={subnets=[$subnets],securityGroups=[$group],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$cluster" --tasks "$task"
+          code=$(aws ecs describe-tasks --cluster "$cluster" --tasks "$task" --query 'tasks[0].containers[0].exitCode' --output text)
+          test "$code" = "0" || { echo "Migration failed with exit code $code. Nothing was rolled out."; exit 1; }
+
+      - name: Roll out
+        run: terraform apply -auto-approve -var-file=envs/${{ inputs.environment }}.tfvars
+
+      - name: Wait until services are stable
+        run: |
+          cluster=$(terraform output -raw cluster)
+          aws ecs wait services-stable --cluster "$cluster" --services api worker delivery web
+
+      - name: Check a pipeline worker can't reach other hosts (#33)
+        if: inputs.check_egress
+        run: |
+          cluster=$(terraform output -raw cluster)
+          subnets=$(terraform output -json app_subnets | jq -r 'join(",")')
+          group=$(terraform output -raw app_security_group)
+          probe='import httpx,sys
+          def reach(u):
+              try: httpx.get(u, timeout=10); return True
+              except Exception: return False
+          sys.exit(0 if not reach("https://example.com") and reach("https://generativelanguage.googleapis.com") else 1)'
+          overrides=$(jq -n --arg code "$probe" '{containerOverrides:[{name:"migrate",command:["python","-c",$code]}]}')
+          task=$(aws ecs run-task --cluster "$cluster" --launch-type FARGATE --task-definition "$(terraform output -raw migrate_task_definition)" \
+            --overrides "$overrides" \
+            --network-configuration "awsvpcConfiguration={subnets=[$subnets],securityGroups=[$group],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$cluster" --tasks "$task"
+          code=$(aws ecs describe-tasks --cluster "$cluster" --tasks "$task" --query 'tasks[0].containers[0].exitCode' --output text)
+          test "$code" = "0" || { echo "Egress check failed: a worker reached a host outside the allow-list, or couldn't reach the model."; exit 1; }

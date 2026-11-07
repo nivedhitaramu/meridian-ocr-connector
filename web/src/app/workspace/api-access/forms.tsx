@@ -86,6 +86,20 @@ export function AddWebhookForm({ organizationId }: { organizationId: string }) {
           </label>
           <Input id="webhook-url" name="url" type="url" required maxLength={500} />
         </div>
+        <div className="space-y-1">
+          <label htmlFor="webhook-format" className="block text-sm font-medium">
+            Sends
+          </label>
+          <select
+            id="webhook-format"
+            name="format"
+            defaultValue="event"
+            className="border-input bg-background focus-visible:ring-ring/50 h-8 rounded-md border px-2 text-sm outline-none focus-visible:ring-3"
+          >
+            <option value="event">Every finished check (IDs and status)</option>
+            <option value="wms_receipt">Verified receipts for a warehouse system</option>
+          </select>
+        </div>
         <Button type="submit" disabled={pending}>
           {pending ? "Adding..." : "Add webhook"}
         </Button>

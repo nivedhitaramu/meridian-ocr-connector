@@ -14,6 +14,9 @@ from . import intake, jobs, retention, webhooks
 
 app = Celery("meridian", broker=config.REDIS_URL)
 app.conf.update(
+    # Deliveries reach customers' own addresses, so in AWS they run on a separate worker that skips the
+    # model-only egress firewall (infra/aws). A single worker consumes both queues: -Q celery,deliveries.
+    task_routes={"deliver_webhook": {"queue": "deliveries"}},
     task_serializer="json",
     accept_content=["json"],
     task_ignore_result=True,
