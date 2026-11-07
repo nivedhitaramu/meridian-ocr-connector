@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, Depends, File, Header, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from ..ingestion.storage import new_key, store
 from ..ingestion.upload import sniff_kind
 from ..worker import queue
 from .deps import Member, NotFound, current_member, request_id_for
+from .usage import over_limit
 
 router = APIRouter(prefix="/v1")
 
@@ -129,6 +130,10 @@ def start_job(shipment_id: uuid.UUID, idempotency_key: str | None = Header(defau
         Document.shipment_id == shipment.id, Document.storage_key.is_not(None)).limit(1))
     if waiting is None:
         return JSONResponse(status_code=409, content={"error": "Upload a document first."})
+    waiting_count = session.scalar(select(func.count()).select_from(Document).where(
+        Document.shipment_id == shipment.id, Document.storage_key.is_not(None)))
+    if over_limit(session, member.organization_id, waiting_count):
+        return JSONResponse(status_code=402, content={"error": "This plan's monthly document limit has been reached."})
     job = ProcessingJob(organization_id=member.organization_id, shipment_id=shipment.id,
                         idempotency_key=idempotency_key, job_status="queued", attempts=0)
     session.add(job)

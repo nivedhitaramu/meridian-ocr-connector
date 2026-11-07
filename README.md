@@ -181,6 +181,7 @@ Top-level `document_type` and `fields` describe the first file. `documents` has 
 | `PATCH /v1/organization/retention` | Choose how long shipment records are kept; admin |
 | `GET /v1/observability/summary` | Latest trace, timings and counts from saved jobs; supervisor or admin |
 | `GET /v1/audit-events` | Newest audit events for the organization; admin |
+| `GET /v1/usage` | This month's documents, model calls and tokens, against the plan's limit; supervisor or admin |
 | `/v1/api-keys`, `/v1/webhooks` | Customer API keys and signed webhooks; admin. See [docs/API.md](docs/API.md) |
 
 Errors return only `{"error": "Could not read this document.", "request_id": "..."}`. The server log records a class such as `ocr_engine_missing` or `schema_invalid`.
