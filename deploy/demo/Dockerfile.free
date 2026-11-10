@@ -1,0 +1,23 @@
+# The live demo for free hosting with 512 MB of memory, such as Render's free instance.
+# Same as deploy/demo/Dockerfile, but with spaCy's small English model: the API peaks near 300 MB instead of about 900 MB.
+# The small model finds names a little less reliably, so use this for a prototype link, not for scoring.
+FROM python:3.13-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr poppler-utils caddy \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && python -m spacy download en_core_web_sm
+
+COPY app ./app
+COPY ui ./ui
+COPY deploy/demo/Caddyfile deploy/demo/start.sh ./deploy/
+
+RUN useradd -u 1000 -m demo && mkdir -p /app/.uploads /app/logs && chown -R demo /app && chmod +x /app/deploy/start.sh
+USER demo
+
+ENV PYTHONUNBUFFERED=1 OTEL_CONSOLE_EXPORT=0 PORT=7860 XDG_DATA_HOME=/tmp XDG_CONFIG_HOME=/tmp SPACY_MODEL=en_core_web_sm \
+    DAILY_EXTRACT_LIMIT=50 MAX_EML_ATTACHMENTS=4
+EXPOSE 7860
+CMD ["/app/deploy/start.sh"]
