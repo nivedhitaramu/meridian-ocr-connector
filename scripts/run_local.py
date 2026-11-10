@@ -60,5 +60,7 @@ queue.enqueue_webhook = lambda organization_id, delivery: _in_background(
     _retrying(webhooks.deliver, webhooks.TryAgain, 3, 30), str(organization_id), str(delivery))
 
 if __name__ == "__main__":
-    print(f"API on http://127.0.0.1:8000, data in {LOCAL}")
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+    # HOST and PORT let a free host such as Render run this too (deploy/render/api.Dockerfile).
+    host, port = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8000"))
+    print(f"API on http://{host}:{port}, data in {LOCAL}")
+    uvicorn.run(app, host=host, port=port, log_level="warning")
