@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { type FormState, startOrganization } from "./actions";
+import { useReloadAfter } from "./shipments/forms";
 
 const INITIAL: FormState = { error: null };
 
 export function StartOrganizationForm() {
   const [state, action, pending] = useActionState(startOrganization, INITIAL);
+  useReloadAfter(state);
   return (
     <form action={action} className="max-w-sm space-y-3">
       <div className="space-y-1">
@@ -31,7 +33,7 @@ export function StartOrganizationForm() {
         </p>
       ) : null}
       <Button type="submit" disabled={pending}>
-        {pending ? "Creating..." : "Create organization"}
+        {pending || state.reload ? "Creating..." : "Create organization"}
       </Button>
     </form>
   );
